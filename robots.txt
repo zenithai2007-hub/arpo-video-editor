@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://arpo-video-editor.vercel.app/sitemap.xml
