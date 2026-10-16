@@ -37,23 +37,40 @@ function setStatus(msg, cls) { const s = $('planstatus'); s.textContent = msg; s
 
 /* ---------- templates ---------- */
 const TEMPLATES = [
-  { id: 'recap', icon: '🎬', name: 'Story Recap', desc: 'Main kahani ke important moments ka recap.', prompt: 'Make a punchy recap: keep only the most important moments, strong opening hook, short captions on each beat.' },
-  { id: 'podcast', icon: '🎙️', name: 'Podcast Highlights', desc: 'Bolne wale content ke best highlights.', prompt: 'Extract the best highlight moments from this talking video. Keep original voice, add short captions for each highlight, tight pacing.' },
+  { id: 'recap', icon: '🎬', name: 'Story Recap', desc: 'Main kahani ke important moments ka recap.', prompt: 'Punchy recap: key moments only, strong hook, short captions.' },
+  { id: 'podcast', icon: '🎙️', name: 'Podcast Highlights', desc: 'Bolne wale content ke best highlights.', prompt: 'Best highlights from this talking video: original voice, short captions, tight pacing.' },
   { id: 'cine', icon: '🎞️', name: 'Cinematic Short', desc: 'Cinematic pacing aur dramatic look.', prompt: 'Make a cinematic short: dramatic pacing, best visuals only, warm cinematic look, hard cuts on beat.' },
-  { id: 'promo', icon: '📢', name: 'Product Promo', desc: 'Product ke liye energetic promo cut.', prompt: 'Make a fast product promo: show the product clearly, energetic cuts, bold captions, strong call-to-action ending.' },
-  { id: 'travel', icon: '✈️', name: 'Travel Vlog', desc: 'Trip ki best memories ka montage.', prompt: 'Make a travel montage: best scenic moments, smooth pacing, upbeat energy, captions with place vibes.' },
-  { id: 'fitness', icon: '💪', name: 'Fitness Reel', desc: 'Workout clips ka powerful reel.', prompt: 'Make a high-energy fitness reel: hardest reps only, fast cuts on beat, bold motivational captions.' },
-  { id: 'food', icon: '🍔', name: 'Food Review', desc: 'Dishes ke tasty close-ups.', prompt: 'Make a tasty food review cut: close-up shots of dishes, quick cuts, captions naming each dish, mouth-watering pacing.' },
-  { id: 'motivation', icon: '🔥', name: 'Motivational', desc: 'Speech ka powerful short.', prompt: 'Make a motivational short: strongest lines only, dramatic pauses, bold captions on key phrases, cinematic look.' },
+  { id: 'promo', icon: '📢', name: 'Product Promo', desc: 'Product ke liye energetic promo cut.', prompt: 'Fast product promo: clear product shots, energetic cuts, bold captions, strong CTA.' },
+  { id: 'travel', icon: '✈️', name: 'Travel Vlog', desc: 'Trip ki best memories ka montage.', prompt: 'Travel montage: best scenic moments, smooth pacing, place captions.' },
+  { id: 'fitness', icon: '💪', name: 'Fitness Reel', desc: 'Workout clips ka powerful reel.', prompt: 'High-energy fitness reel: hardest reps, fast cuts, bold captions.' },
+  { id: 'food', icon: '🍔', name: 'Food Review', desc: 'Dishes ke tasty close-ups.', prompt: 'Tasty food review: dish close-ups, quick cuts, name captions.' },
+  { id: 'motivation', icon: '🔥', name: 'Motivational', desc: 'Speech ka powerful short.', prompt: 'Motivational short: strongest lines, bold key-phrase captions, cinematic.' },
 ];
 /* ---------- views (Magic Hour style) ---------- */
-function showHome() { $('home').hidden = false; $('editorview').hidden = true; window.scrollTo(0, 0); }
+function showView(v) {
+  ['home','editorview'].forEach(id => { const e = $(id); if (e) e.hidden = true; });
+  document.querySelectorAll('.dashview').forEach(d => d.hidden = true);
+  if (v === 'home') $('home').hidden = false;
+  else if (v === 'editor') $('editorview').hidden = false;
+  else { const el = $(v + 'view'); if (el) el.hidden = false; }
+  document.querySelectorAll('.snav').forEach(b => b.classList.toggle('on', b.dataset.v === v || (v === 'editor' && b.dataset.v === 'create')));
+  if (v === 'projects') renderProjects();
+  if (v === 'exports') renderExports();
+  if (v === 'settings') syncSettings();
+  window.scrollTo(0, 0);
+}
+function go(v) {
+  if (v === 'create') return openEditor(null);
+  if (v === 'templates') { showView('home'); setTimeout(() => { const g = $('toolgrid'); if (g) g.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 60); return; }
+  showView(v);
+}
+function showHome() { go('home'); }
 function openEditor(tid) {
-  $('home').hidden = true; $('editorview').hidden = false; window.scrollTo(0, 0);
   if (tid) {
     const t = TEMPLATES.find(x => x.id === tid);
     if (t) { S.template = tid; $('prompttext').value = t.prompt; setStatus('Style "' + t.name + '" loaded — upload a video, then Generate AI Plan.', 'ok'); }
   }
+  showView('editor');
   renderTemplates();
 }
 function renderTemplates() {
@@ -96,7 +113,7 @@ function loadFile(f) {
   if (!ok.includes(f.type) && !['mp4', 'mov', 'm4v', 'webm'].includes(ext)) { toast('Only MP4 / MOV / M4V / WebM.', true); return; }
   if (f.size > 4 * 1024 * 1024 * 1024) { toast('File is over the 4 GB limit.', true); return; }
   if (S.fileURL) URL.revokeObjectURL(S.fileURL);
-  S.file = f; S.fname = f.name; S.fileURL = URL.createObjectURL(f);
+  S.file = f; S.fname = f.name; S.fileURL = URL.createObjectURL(f); setTimeout(()=>saveProject('Draft'), 500);
   const v = $('preview');
   v.src = S.fileURL; v.style.display = 'block'; $('nopreview').style.display = 'none';
   v.onloadedmetadata = () => {
@@ -105,7 +122,7 @@ function loadFile(f) {
     const mb = (f.size / 1048576).toFixed(1);
     const fe = $('fileinfo'); fe.style.display = 'block';
     fe.innerHTML = '<b>' + esc(f.name) + '</b><br>Duration: ' + fmt(S.duration) + ' · ' + S.vw + '×' + S.vh + '<br>Size: ' + mb + ' MB';
-    $('planbtn').disabled = false; $('exportbtn').disabled = false;
+    $('planbtn').disabled = false; $('exportbtn').disabled = false; const cb=$('cloudbtn'); if(cb) cb.disabled = false;
     if (S.duration > 600) toast('Long video — export will be slow in the browser. Shorter is better.');
     S.clips = [newClip(0, S.duration, '')];
     S.selected = S.clips[0].id; S.aiPlan = null; S.planSource = null;
@@ -659,5 +676,128 @@ $('authgo').onclick = async () => {
 
 /* ---------- init ---------- */
 $('startbtn').onclick = () => openEditor(null);
-$('backbtn').onclick = showHome;
-showHome(); renderTemplates(); syncChips(); renderInspector(); checkEngine(); initAuth(); updateTimecode();
+$('backbtn').onclick = () => go('home');
+/* ---------- dashboard: sidebar, projects, exports, cloud render ---------- */
+document.querySelectorAll('.snav').forEach(b => b.onclick = () => go(b.dataset.v));
+document.querySelectorAll('[data-v]').forEach(b => { if (!b.classList.contains('snav')) b.onclick = () => go(b.dataset.v); });
+function lsGet(k, d) { try { return JSON.parse(localStorage.getItem(k) || JSON.stringify(d)); } catch (e) { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function saveProject(status) {
+  const ps = lsGet('arpo_projects', []);
+  ps.unshift({ name: ($('projname') && $('projname').value) || 'Untitled', at: Date.now(), status: status || 'Draft', dur: S.duration || 0, aspect: S.aspect, clips: (S.clips || []).length });
+  lsSet('arpo_projects', ps.slice(0, 60));
+}
+function saveExport(e) {
+  const xs = lsGet('arpo_exports', []);
+  xs.unshift({ ...e, at: Date.now() });
+  lsSet('arpo_exports', xs.slice(0, 60));
+}
+function renderProjects() {
+  const q = ($('projsearch').value || '').toLowerCase(), f = $('projfilter').value;
+  const ps = lsGet('arpo_projects', []).filter(p => (!q || p.name.toLowerCase().includes(q)) && (!f || p.status === f));
+  const g = $('projgrid'); g.innerHTML = '';
+  $('projempty').style.display = ps.length ? 'none' : '';
+  const stc = { Draft: 'st-draft', Completed: 'st-ok', Processing: 'st-proc', Failed: 'st-fail', Rendering: 'st-proc' };
+  ps.forEach(p => {
+    const d = document.createElement('div'); d.className = 'pcard';
+    d.innerHTML = '<b>' + esc(p.name) + '</b><span class="pmeta">' + new Date(p.at).toLocaleDateString() + ' · ' + (p.dur ? p.dur.toFixed(0) + 's' : '—') + ' · ' + p.aspect + '</span><span class="pstat ' + (stc[p.status] || 'st-draft') + '">' + p.status + '</span>';
+    const b = document.createElement('button'); b.className = 'btn sm'; b.textContent = 'Open in editor'; b.onclick = () => openEditor(null);
+    d.appendChild(b); g.appendChild(d);
+  });
+}
+function renderExports() {
+  const xs = lsGet('arpo_exports', []);
+  const g = $('expgrid'); g.innerHTML = '';
+  $('expempty').style.display = xs.length ? 'none' : '';
+  xs.forEach(x => {
+    const d = document.createElement('div'); d.className = 'pcard';
+    d.innerHTML = '<b>' + esc(x.name) + '</b><span class="pmeta">' + new Date(x.at).toLocaleString() + ' · ' + x.kind + (x.size ? ' · ' + (x.size / 1024).toFixed(0) + ' KB' : '') + '</span>';
+    const a = document.createElement('a'); a.className = 'btn sm primary'; a.textContent = '⬇ Download'; a.href = x.url; a.target = '_blank'; a.rel = 'noopener';
+    d.appendChild(a); g.appendChild(d);
+  });
+}
+function syncSettings() { const e = $('setengine'); if (e) e.innerHTML = $('aiengine').innerHTML + ' <small>(see ⚙ AI Engine)</small>'; }
+$('projsearch').oninput = renderProjects; $('projfilter').onchange = renderProjects;
+function clipsToSrt(clips) {
+  const t = s => { s = Math.max(0, s); const h = String(Math.floor(s / 3600)).padStart(2, '0'), m = String(Math.floor(s % 3600 / 60)).padStart(2, '0'), sec = String(Math.floor(s % 60)).padStart(2, '0'), ms = String(Math.floor((s % 1) * 1000)).padStart(3, '0'); return h + ':' + m + ':' + sec + ',' + ms; };
+  return clips.filter(c => c.caption).map((c, i) => (i + 1) + '\n' + t(c.start) + ' --> ' + t(c.end) + '\n' + c.caption + '\n').join('\n');
+}
+function buildRenderOps() {
+  const clips = S.clips.filter(c => c.end > c.start);
+  const speeds = [...new Set(clips.map(c => c.speed || 1))];
+  const uniformSpeed = speeds.length === 1 ? speeds[0] : 1;
+  return {
+    cuts: clips.map(c => ({ start: +c.start.toFixed(2), end: +c.end.toFixed(2) })),
+    aspect: S.aspect, speed: uniformSpeed,
+    mute: S.audioMode === 'mute',
+    captionsSrt: clipsToSrt(clips) || '',
+    _notes: speeds.length > 1 ? 'per-clip speed varied — used 1x in cloud beta' : '',
+  };
+}
+async function tmpUploadBrowser(file) {
+  const fd = new FormData(); fd.append('file', file, file.name);
+  const r = await fetch('https://tmpfiles.org/api/v1/upload', { method: 'POST', body: fd });
+  const j = await r.json();
+  if (j.status !== 'success' || !j.data || !j.data.url) throw new Error('cloud upload failed');
+  return j.data.url;
+}
+async function cloudRender() {
+  if (!S.file) { toast('Pehle video upload karo', true); return; }
+  const btn = $('cloudbtn'); btn.disabled = true;
+  const cs = $('cloudstatus');
+  const stage = t => { cs.innerHTML = t ? '<div class="cstage">☁ <b>' + t + '</b><br><small>Real FFmpeg on ARPO cloud — no fake progress, stages only.</small></div>' : ''; };
+  try {
+    stage('Uploading video to cloud… (1/3)');
+    const pageUrl = await tmpUploadBrowser(S.file);
+    stage('Rendering on ARPO cloud — real FFmpeg… (2/3)<br><small>Cuts · aspect · captions · speed. ~30-60s for short clips.</small>');
+    const ops = buildRenderOps();
+    const r = await fetch('/api/render', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inputUrl: pageUrl, filename: (($('projname').value || 'arpo') + '').replace(/[^\w\-]+/g, '-').slice(0, 40), ops }) });
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || 'render failed');
+    stage('');
+    cs.innerHTML = '<div class="cresult">✅ <b>Cloud render ready!</b> ' + (j.sizeBytes / 1024).toFixed(0) + ' KB'
+      + (j.captionsBurned ? ' · captions burned' : '') + (ops._notes ? '<br><small>⚠ ' + ops._notes + '</small>' : '')
+      + '<br><video src="' + j.previewUrl + '" controls playsinline style="max-width:100%;border-radius:10px;margin:8px 0"></video><br>'
+      + '<a class="btn primary sm" href="' + j.previewUrl + '" target="_blank" rel="noopener" download="arpo-cloud.mp4">⬇ Download MP4</a> '
+      + '<a class="btn sm ghost" href="' + j.url + '" target="_blank" rel="noopener">Open file page</a>'
+      + '<br><small class="cnote">Preview links expire — download soon.</small></div>';
+    saveExport({ name: ($('projname').value || 'Untitled'), url: j.previewUrl, page: j.url, kind: 'cloud', size: j.sizeBytes });
+    saveProject('Completed');
+    toast('☁ Cloud render complete!');
+  } catch (e) { stage(''); toast('Cloud render: ' + e.message, true); saveProject('Failed'); }
+  btn.disabled = false;
+}
+$('cloudbtn').onclick = cloudRender;
+/* demo handoff from landing */
+function idbGetDemo() {
+  return new Promise(res => {
+    try {
+      const q = indexedDB.open('arpo', 1);
+      q.onsuccess = () => {
+        try {
+          const tx = q.result.transaction('demo', 'readonly');
+          const g = tx.objectStore('demo').get('video');
+          g.onsuccess = () => res(g.result || null); g.onerror = () => res(null);
+        } catch (e) { res(null); }
+      };
+      q.onerror = () => res(null);
+    } catch (e) { res(null); }
+  });
+}
+async function handleDemoHash() {
+  if (location.hash !== '#demo') return;
+  history.replaceState(null, '', 'app.html');
+  openEditor(null);
+  try {
+    const p = sessionStorage.getItem('arpo-demo-prompt');
+    if (p) $('prompttext').value = p;
+    const blob = await idbGetDemo();
+    if (blob) {
+      const f = new File([blob], blob.name || 'demo-video.mp4', { type: blob.type || 'video/mp4' });
+      loadFile(f);
+      toast('Demo video loaded — Generate AI Plan dabao!');
+    } else setStatus('Video dobara select karo (browser security), prompt ready hai.', '');
+  } catch (e) {}
+}
+showHome(); handleDemoHash(); renderTemplates(); syncChips(); renderInspector(); checkEngine(); initAuth(); updateTimecode();

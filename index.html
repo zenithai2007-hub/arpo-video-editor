@@ -1,277 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>arPo — AI Video Editor</title>
-<meta name="description" content="arPo — free AI video editor. Drop a clip, describe the cut: AI builds your edit plan, you polish it on the timeline, export MP4 in 720p, 1080p HD or 4K. No signup needed.">
-<meta property="og:title" content="arPo — AI Video Editor">
-<meta property="og:description" content="Drop a clip. Describe the cut. Free AI video editing in your browser.">
-<meta property="og:image" content="https://arpo-video-editor.vercel.app/logo.png">
-<meta property="og:url" content="https://arpo-video-editor.vercel.app/">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="canonical" href="https://arpo-video-editor.vercel.app/">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARPO — Edit Videos With Words</title>
+<meta name="description" content="ARPO — AI video editing SaaS. Upload a video. Tell ARPO what you want. Let AI do the editing. Real server-side rendering.">
+<meta property="og:title" content="ARPO — Edit Videos With Words">
+<meta property="og:description" content="Upload a video. Tell ARPO what you want. Let AI do the editing.">
 <link rel="icon" href="logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script type="importmap">
-{"imports":{
-  "@ffmpeg/ffmpeg":"https://unpkg.com/@ffmpeg/ffmpeg@0.12.6/dist/esm/index.js",
-  "@ffmpeg/util":"https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js",
-  "@ffmpeg/core-st":"https://unpkg.com/@ffmpeg/core-st@0.12.6/dist/esm/index.js"
-}}
-</script>
 </head>
-<body>
-<div id="app">
-  <header id="topbar">
-    <div class="brand">
-      <img src="logo.png" alt="arPo">
-      <span class="tag">AI VIDEO EDITOR</span>
-    </div>
-    <input id="projname" value="Untitled project" maxlength="60" title="Project name">
-    <div class="spacer"></div>
-    <span id="aiengine" title="AI engine status">◌ AI…</span>
-    <span id="autharea">
-      <button class="btn ghost sm" id="loginbtn" style="display:none">Log in</button>
-      <span id="userchip" style="display:none"></span>
-    </span>
-    <button class="btn ghost sm" id="settingsbtn">⚙ AI Engine</button>
-    <button class="btn primary" id="exportbtn" disabled>⬇ Export MP4</button>
-  </header>
+<body class="landing">
 
-  <!-- ============ HOME (Magic Hour style dashboard) ============ -->
-  <div id="home">
-    <section class="hero">
-      <div class="hero-badge">✂️ AI VIDEO EDITOR</div>
-      <h1>Drop a clip.<br>Describe the cut.</h1>
-      <p>arPo watches your footage, you describe the vibe —<br>AI builds the edit, you polish it. Done.</p>
-      <button class="btn primary big" id="startbtn">✨ Start Creating</button>
-      <div class="hero-stats">
-        <span>🤖 AI edit plans</span><span>✂️ Smart timeline</span><span>⬇️ 4K export</span>
+<header id="lnav">
+  <div class="lwrap lnavin">
+    <span class="lbrand"><img src="logo.png" alt="">ARPO</span>
+    <nav><a href="#how">How it works</a><a href="#caps">Capabilities</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></nav>
+    <a href="app.html" class="btn light sm">Start Editing</a>
+  </div>
+</header>
+
+<section id="lhero">
+  <div class="lwrap">
+    <div class="lpill">● AI VIDEO EDITING SAAS</div>
+    <h1>Edit Videos<br>With Words.</h1>
+    <p class="lsub">Upload a video. Tell ARPO what you want.<br>Let AI do the editing.</p>
+    <div class="lctas">
+      <a href="app.html" class="btn light big">Start Editing →</a>
+      <a href="#how" class="btn dark big">See How It Works</a>
+    </div>
+
+    <div id="demobox">
+      <div class="demorow">
+        <label class="dupload" id="demoupload">📁 <span>Upload video</span><small>MP4 · MOV · WebM</small>
+          <input type="file" id="demofile" accept="video/mp4,video/quicktime,video/webm" hidden>
+        </label>
+        <input id="demoprompt" placeholder='Try: "Remove pauses, add captions, zoom in on important moments, and make it cinematic."' maxlength="300">
+        <button class="btn light" id="demogo">✨ Generate</button>
       </div>
-    </section>
-
-    <section class="toolssec">
-      <h2>Pick a style to start</h2>
-      <p class="sub">Ya blank canvas se shuru karo — prompt tum likho, edit AI banaye.</p>
-      <div class="toolgrid" id="toolgrid"></div>
-    </section>
-
-    <section class="howsec">
-      <h2>How it works</h2>
-      <div class="steps">
-        <div class="step"><div class="snum">1</div><b>Upload</b><span>Apni video drop karo</span></div>
-        <div class="step"><div class="snum">2</div><b>Describe</b><span>Prompt likho — AI plan banayega</span></div>
-        <div class="step"><div class="snum">3</div><b>Export</b><span>Polish karo, MP4 download karo</span></div>
-      </div>
-    </section>
-    <footer class="homefoot">arPo — cut different ✂️</footer>
-  </div>
-
-  <!-- ============ EDITOR ============ -->
-  <div id="editorview" hidden>
-    <div class="editorbar">
-      <button class="btn sm ghost" id="backbtn">← All tools</button>
-      <span id="editortitle">AI Video Editor</span>
-    </div>
-    <div id="main">
-      <aside id="left">
-        <div class="panel-h">Media</div>
-        <div id="dropzone"><div class="big">📁</div>Drop video here<br>or click to upload<br><small style="color:#999">MP4 · MOV · M4V · WebM</small></div>
-        <input type="file" id="fileinput" accept="video/mp4,video/quicktime,video/x-m4v,video/webm" hidden>
-        <div id="fileinfo"></div>
-        <div class="hintline" style="margin:0 14px">💡 Tip: pehle home se style pick karo, ya seedha prompt likho.</div>
-      </aside>
-
-      <section id="center">
-        <div id="previewwrap">
-          <video id="preview" controls playsinline style="display:none"></video>
-          <div id="nopreview">🎬<br><b>Drop a clip. Describe the cut.</b><br>Upload a video to start editing.</div>
-        </div>
-        <div id="promptbar">
-          <label>✨ Describe your edit</label>
-          <div id="prompt">
-            <textarea id="prompttext" maxlength="4000" placeholder='e.g. "Make a 30-second vertical Reel, keep the best moments, add short captions, keep original voice, strong opening."'></textarea>
-            <button class="btn primary" id="planbtn" disabled style="align-self:flex-start;white-space:nowrap">Generate<br>AI Plan</button>
-          </div>
-          <div id="airow">
-            <select id="modelsel" title="AI model"><option value="">— loading models… —</option></select>
-            <button class="btn sm ghost" id="refreshmodels">↻</button>
-            <span id="planstatus"></span>
-          </div>
-        </div>
-      </section>
-
-      <aside id="right">
-        <div class="insp-sec">
-          <h4>Selected clip</h4>
-          <div class="frow"><label>Start (s)</label><input type="number" id="clipstart" step="0.1" min="0"></div>
-          <div class="frow"><label>End (s)</label><input type="number" id="clipend" step="0.1" min="0"></div>
-          <div class="frow"><label>Duration</label><span id="clipdur" style="font-family:var(--mono);font-size:12px;color:var(--muted)">—</span></div>
-          <input id="captext" placeholder="Caption for this clip…" maxlength="120">
-          <h4 style="margin-top:12px">Speed</h4>
-          <div class="chiprow" id="speedrow">
-            <button class="chip" data-v="0.5">0.5×</button>
-            <button class="chip on" data-v="1">1×</button>
-            <button class="chip" data-v="1.5">1.5×</button>
-            <button class="chip" data-v="2">2×</button>
-          </div>
-          <h4 style="margin-top:12px">Rotate</h4>
-          <div class="chiprow" id="rotaterow">
-            <button class="chip on" data-v="0">0°</button>
-            <button class="chip" data-v="90">90°</button>
-            <button class="chip" data-v="180">180°</button>
-            <button class="chip" data-v="270">270°</button>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn sm danger" id="delclip">Remove clip</button>
-          </div>
-        </div>
-        <div class="insp-sec">
-          <h4>Canvas</h4>
-          <div class="chiprow" id="aspectrow">
-            <button class="chip on" data-v="9:16">9:16</button>
-            <button class="chip" data-v="16:9">16:9</button>
-            <button class="chip" data-v="1:1">1:1</button>
-          </div>
-          <h4>Export size</h4>
-          <div class="chiprow" id="resrow">
-            <button class="chip on" data-v="720p">720p</button>
-            <button class="chip" data-v="1080p">1080p HD</button>
-            <button class="chip" data-v="4K">4K</button>
-          </div>
-          <h4>Look</h4>
-          <div class="chiprow" id="stylerow">
-            <button class="chip on" data-v="clean">Clean</button>
-            <button class="chip" data-v="cinematic">Cinematic</button>
-            <button class="chip" data-v="vibrant">Vibrant</button>
-            <button class="chip" data-v="warm">Warm</button>
-          </div>
-          <h4>Transition</h4>
-          <div class="chiprow" id="transrow">
-            <button class="chip on" data-v="cut">Hard cut</button>
-            <button class="chip" data-v="fade">Fade</button>
-          </div>
-        </div>
-        <div class="insp-sec">
-          <h4>Audio</h4>
-          <div class="chiprow" id="audiorow">
-            <button class="chip on" data-v="keep">Keep voice</button>
-            <button class="chip" data-v="mute">Mute</button>
-          </div>
-          <div class="frow" style="margin-top:10px"><label>Volume</label><input type="range" id="vol" min="0" max="150" value="100"><span id="volv" style="font-family:var(--mono);font-size:12px;width:44px">100%</span></div>
-        </div>
-      </aside>
-
-      <section id="timeline">
-        <div id="tl-tools">
-          <button class="btn sm" id="undobtn" title="Undo">↩ Undo</button>
-          <button class="btn sm" id="redobtn" title="Redo">↪ Redo</button>
-          <button class="btn sm" id="splitbtn" title="Split selected clip at playhead">✂ Split</button>
-          <button class="btn sm" id="moveleft" title="Move clip earlier">◀</button>
-          <button class="btn sm" id="moveright" title="Move clip later">▶</button>
-          <button class="btn sm ghost" id="resetbtn" title="Reset to AI plan">Reset to AI plan</button>
-          <span class="tc" id="timecode">00:00.0 / 00:00.0</span>
-        </div>
-        <div id="track"><div id="playhead" style="left:0%"></div><div id="tl-ruler"></div></div>
-      </section>
+      <div id="demostatus"></div>
     </div>
   </div>
-</div>
+</section>
 
-<div id="modal"><div id="modalbox">
-  <h3>⚙ AI Engine</h3>
-  <p>arPo ka <b>Free AI engine</b> — koi key nahi chahiye, bas chalao. App ki apni key server par protected hai (user ko kabhi nazar nahi aati).</p>
-  <div id="enginestatus" style="margin-top:12px"><div class="badline">◌ Checking…</div></div>
-  <p style="margin-top:12px">If AI is unreachable, arPo runs in <b>Demo mode</b> — a smart local plan, still fully editable.</p>
-  <div class="modalbtns">
-    <button class="btn ghost" id="modalcancel">Close</button>
-    <button class="btn primary" id="modalcheck">↻ Check again</button>
+<section id="how"><div class="lwrap">
+  <h2>How ARPO Works</h2>
+  <div class="lsteps">
+    <div class="lstep"><div class="lnum">01</div><b>Upload</b><p>Drop your video. MP4, MOV, WebM — up to 150MB for cloud render.</p></div>
+    <div class="lstep"><div class="lnum">02</div><b>Describe</b><p>Write what you want in plain words. ARPO's AI builds a structured editing plan.</p></div>
+    <div class="lstep"><div class="lnum">03</div><b>Generate</b><p>Real server-side FFmpeg rendering. Preview, compare, download your MP4.</p></div>
   </div>
-</div></div>
+</div></section>
 
-<!-- THUMBNAIL MODAL -->
-<div id="thumbmodal"><div class="modalbox" style="width:520px">
-  <h3>🎨 AI Thumbnail</h3>
-  <p>Describe your thumbnail — free AI will paint it. Perfect for YouTube &amp; Reels covers.</p>
-  <input id="thumbprompt" placeholder='e.g. "dramatic youtube thumbnail, shocked face, fire background, bold red text"' maxlength="500" style="width:100%;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px">
-  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">SIZE</h4>
-  <div class="chiprow" id="thumbratio">
-    <button class="chip on" data-v="16:9">16:9 YouTube</button>
-    <button class="chip" data-v="9:16">9:16 Reel</button>
-    <button class="chip" data-v="1:1">1:1 Square</button>
+<section id="caps"><div class="lwrap">
+  <h2>AI Editing Capabilities</h2>
+  <div class="capgrid">
+    <div class="cap">✂️ Remove silence</div><div class="cap">💬 Auto captions</div>
+    <div class="cap">📐 Reframe video</div><div class="cap">🎯 Smart cuts</div>
+    <div class="cap">🔍 Zoom effects</div><div class="cap">🎙️ Audio cleanup</div>
+    <div class="cap">📱 Social formats</div><div class="cap">⭐ Highlight detection</div>
+    <div class="cap">🔤 Text overlays</div><div class="cap">⚡ Speed control</div>
+    <div class="cap">🎞️ B-roll support</div><div class="cap">🔊 Audio enhancement</div>
   </div>
-  <div id="thumbout" style="margin-top:14px;text-align:center">
-    <img id="thumbimg" style="display:none;max-width:100%;border-radius:12px;border:1px solid var(--line)" alt="AI thumbnail">
-    <div id="thumbloading" style="display:none;color:var(--muted);font-size:13px;padding:20px">🎨 Painting… (10–20 sec)</div>
-  </div>
-  <div class="modalbtns">
-    <button class="btn ghost" id="thumbclose">Close</button>
-    <a class="btn ghost" id="thumbdl" style="display:none;text-decoration:none" download="arpo-thumbnail.jpg">⬇ Download</a>
-    <button class="btn primary" id="thumbgen">Generate</button>
-  </div>
-</div></div>
+</div></section>
 
-<!-- AUTH MODAL -->
-<div id="authmodal"><div class="modalbox" style="width:400px">
-  <h3 id="authtitle">🔐 Log in</h3>
-  <p>Your projects &amp; creations, on any device.</p>
-  <input id="authemail" type="email" placeholder="Email" autocomplete="email" style="width:100%;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px;margin-bottom:10px">
-  <input id="authpass" type="password" placeholder="Password (min 6 chars)" autocomplete="current-password" style="width:100%;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px">
-  <div id="autherr" style="color:#d33;font-size:12.5px;min-height:20px;margin-top:8px"></div>
-  <div class="modalbtns">
-    <button class="btn ghost sm" id="authswitch">New here? Sign up</button>
-    <button class="btn ghost" id="authcancel">Close</button>
-    <button class="btn primary" id="authgo">Log in</button>
+<section id="beforeafter"><div class="lwrap">
+  <h2>Before / After</h2>
+  <div class="bacol">
+    <div class="bacard"><div class="batag">BEFORE</div><b>Raw footage</b><p>Long pauses · no captions · wrong format · flat audio</p></div>
+    <div class="baarrow">→</div>
+    <div class="bacard after"><div class="batag">AFTER · ARPO</div><b>Ready to post</b><p>Tight cuts · burned captions · 9:16 vertical · clean audio</p></div>
   </div>
-</div></div>
+</div></section>
 
-<!-- AI VIDEO MODAL -->
-<div id="aivideomodal"><div class="modalbox" style="width:520px">
-  <h3>🎬 AI Video</h3>
-  <p>Likho kya dekhna hai — AI video banayega. Phir usay <b>arPo editor mein khol kar edit</b> bhi kar sakte ho!</p>
-  <input id="aivprompt" placeholder='e.g. "a cat astronaut floating in space, stars everywhere"' maxlength="800" style="width:100%;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px">
-  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">STYLE</h4>
-  <div class="chiprow" id="aivstyle">
-    <button class="chip on" data-v="cinematic">🎬 Cinematic</button>
-    <button class="chip" data-v="anime">⛩️ Anime</button>
-    <button class="chip" data-v="nature">🌿 Nature</button>
-    <button class="chip" data-v="hyperreal">💎 Hyperreal</button>
-  </div>
-  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">DURATION</h4>
-  <div class="chiprow" id="aivdur">
-    <button class="chip" data-v="4">4 sec</button>
-    <button class="chip on" data-v="5">5 sec</button>
-  </div>
-  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">ASPECT</h4>
-  <div class="chiprow" id="aivratio">
-    <button class="chip on" data-v="16:9">16:9</button>
-    <button class="chip" data-v="9:16">9:16</button>
-    <button class="chip" data-v="1:1">1:1</button>
-  </div>
-  <div id="aivout" style="margin-top:14px;text-align:center">
-    <video id="aivvideo" controls playsinline style="display:none;max-width:100%;border-radius:12px;border:1px solid var(--line);max-height:300px"></video>
-    <div id="aivloading" style="display:none;color:var(--muted);font-size:13px;padding:24px">🎬 Generating… 30–60 sec lag sakte hain, wait karo!</div>
-  </div>
-  <div class="modalbtns">
-    <button class="btn ghost" id="aivclose">Close</button>
-    <button class="btn ghost" id="aivedit" style="display:none">✂️ Edit in arPo</button>
-    <a class="btn ghost" id="aivdl" style="display:none;text-decoration:none" download="arpo-ai-video.mp4">⬇ Download</a>
-    <button class="btn primary" id="aivgen">Generate</button>
-  </div>
-</div></div>
+<section id="formats"><div class="lwrap">
+  <h2>Supported Formats</h2>
+  <div class="fmtrow"><span><b>16:9</b>YouTube</span><span><b>9:16</b>TikTok · Reels</span><span><b>1:1</b>Instagram</span><span><b>4:5</b>Feed</span></div>
+  <p class="lnote">MP4 · MOV · WebM in — MP4 out (720p / 1080p / 4K*)</p>
+</div></section>
 
-<div id="exportov"><div id="expbox">  <h3>🎬 Rendering…</h3>
-  <div id="pbarwrap"><div id="pbar"></div></div>
-  <div id="expmsg">starting…</div>
-  <div id="expdone"><button class="btn primary" id="dlbtn">⬇ Download MP4</button></div>
-  <div style="margin-top:12px"><button class="btn ghost sm" id="expcancel">Cancel</button></div>
-</div></div>
+<section id="pricing"><div class="lwrap">
+  <h2>Pricing</h2>
+  <div class="pricegrid">
+    <div class="price"><b>Free</b><div class="pnum">$0</div><p>Browser editing · AI plans · 720p export · Watermark-free</p><a href="app.html" class="btn dark sm">Start free</a></div>
+    <div class="price hot"><div class="phot">MOST POPULAR</div><b>Pro</b><div class="pnum">$12<span>/mo</span></div><p>Cloud rendering · 1080p · Priority AI · 100 renders/mo</p><a href="app.html" class="btn light sm">Go Pro</a></div>
+    <div class="price"><b>Business</b><div class="pnum">$39<span>/mo</span></div><p>4K renders · Team projects · API access · n8n webhooks</p><a href="app.html" class="btn dark sm">Contact us</a></div>
+  </div>
+  <p class="lnote">* 4K where source &amp; backend allow. Pricing configurable — payments connect at launch.</p>
+</div></section>
 
-<div id="toast"></div>
-<script src="app.js"></script>
+<section id="faq"><div class="lwrap">
+  <h2>FAQ</h2>
+  <div class="faqlist">
+    <details><summary>Is the rendering real?</summary><p>Yes. ARPO renders with real FFmpeg — in your browser for instant edits, or on our cloud for heavier jobs. Nothing is faked.</p></details>
+    <details><summary>Do I need editing skills?</summary><p>No. You describe what you want in words; ARPO builds the edit plan and renders it.</p></details>
+    <details><summary>What videos work best?</summary><p>Talking-head, podcasts, vlogs and promos under a few minutes. Cloud render handles clips up to ~60s in beta.</p></details>
+    <details><summary>Who owns my videos?</summary><p>You do. Uploads are processed for your edit and never shared.</p></details>
+    <details><summary>Can I automate ARPO with n8n?</summary><p>Yes — render events (completed/failed) can fire webhooks to your n8n workflows.</p></details>
+  </div>
+</div></section>
+
+<section id="finalcta"><div class="lwrap">
+  <h2>Your next video is<br>one sentence away.</h2>
+  <a href="app.html" class="btn light big">Start Editing — It's Free</a>
+</div></section>
+
+<footer id="lfoot"><div class="lwrap">
+  <span class="lbrand"><img src="logo.png" alt="">ARPO</span>
+  <p>© 2026 ARPO · Edit videos with words.</p>
+</div></footer>
+
+<script>
+function idbPutDemo(file) {
+  return new Promise((res, rej) => {
+    try {
+      const q = indexedDB.open('arpo', 1);
+      q.onupgradeneeded = () => q.result.createObjectStore('demo');
+      q.onsuccess = () => {
+        try {
+          const tx = q.result.transaction('demo', 'readwrite');
+          tx.objectStore('demo').put(file, 'video');
+          tx.oncomplete = res; tx.onerror = rej;
+        } catch (e) { rej(e); }
+      };
+      q.onerror = rej;
+    } catch (e) { rej(e); }
+  });
+}
+document.getElementById('demogo').onclick = async () => {
+  const f = document.getElementById('demofile').files[0];
+  const p = document.getElementById('demoprompt').value.trim();
+  const st = document.getElementById('demostatus');
+  if (!f) { st.textContent = 'Pehle video select karo!'; return; }
+  st.textContent = 'Editor khol raha hun…';
+  try {
+    await idbPutDemo(f);
+    sessionStorage.setItem('arpo-demo-prompt', p || 'Remove pauses, add captions, zoom in on important moments, and make it cinematic.');
+  } catch (e) {}
+  location.href = 'app.html#demo';
+};
+document.getElementById('demofile').onchange = e => {
+  const f = e.target.files[0];
+  if (f) document.querySelector('#demoupload span').textContent = f.name.slice(0, 22);
+};
+</script>
 </body>
 </html>
