@@ -68,6 +68,11 @@ function renderTemplates() {
   th.innerHTML = '<div class="tico">🎨</div><b>AI Thumbnail</b><span>YouTube &amp; Reels covers — free AI paint karega.</span>';
   th.onclick = () => { $('thumbimg').style.display = 'none'; $('thumbdl').style.display = 'none'; $('thumbmodal').classList.add('open'); };
   box.appendChild(th);
+  const av = document.createElement('div');
+  av.className = 'toolcard';
+  av.innerHTML = '<div class="tico">🎬</div><b>AI Video</b><span>Text likho — AI video banayega. Phir edit bhi karo!</span>';
+  av.onclick = () => { $('aivvideo').style.display = 'none'; $('aivdl').style.display = 'none'; $('aivedit').style.display = 'none'; $('aivideomodal').classList.add('open'); };
+  box.appendChild(av);
   TEMPLATES.forEach(t => {
     const d = document.createElement('div');
     d.className = 'toolcard' + (S.template === t.id ? ' active' : '');
@@ -522,11 +527,6 @@ $('dlbtn').onclick = () => {
 };
 
 /* ---------- AI thumbnail (free, no key) ---------- */
-let thumbRatio = '16:9';
-$$('#thumbratio .chip').forEach(ch => ch.onclick = () => {
-  thumbRatio = ch.dataset.v;
-  $$('#thumbratio .chip').forEach(x => x.classList.toggle('on', x === ch));
-});
 $('thumbclose').onclick = () => $('thumbmodal').classList.remove('open');
 $('thumbmodal').addEventListener('click', e => { if (e.target.id === 'thumbmodal') $('thumbmodal').classList.remove('open'); });
 $('thumbgen').onclick = () => {
@@ -545,6 +545,67 @@ $('thumbgen').onclick = () => {
   };
   img.onerror = () => { $('thumbloading').style.display = 'none'; toast('Generation failed — try again.', true); };
   img.src = url;
+};
+
+/* ---------- AI video (text-to-video, server key) ---------- */
+let aivStyle = 'cinematic', aivDur = 5, aivRatio = '16:9', aivBlobURL = null, thumbRatio = '16:9';
+function chipPick(rowId, cb) {
+  $$('#' + rowId + ' .chip').forEach(ch => ch.onclick = () => {
+    $$('#' + rowId + ' .chip').forEach(x => x.classList.toggle('on', x === ch));
+    cb(ch.dataset.v);
+  });
+}
+chipPick('aivstyle', v => aivStyle = v);
+chipPick('aivdur', v => aivDur = +v);
+chipPick('aivratio', v => aivRatio = v);
+chipPick('thumbratio', v => thumbRatio = v);
+$('aivclose').onclick = () => $('aivideomodal').classList.remove('open');
+$('aivideomodal').addEventListener('click', e => { if (e.target.id === 'aivideomodal') $('aivideomodal').classList.remove('open'); });
+const AIV_STYLE_PRE = {
+  cinematic: 'cinematic film still, dramatic lighting, film grain, ',
+  anime: 'anime style, vibrant colors, detailed, ',
+  nature: 'nature documentary footage, stunning, ',
+  hyperreal: 'hyperrealistic, ultra detailed, 8k, ',
+};
+$('aivgen').onclick = async () => {
+  const p = $('aivprompt').value.trim();
+  if (!p) { toast('Describe your video first.', true); return; }
+  $('aivvideo').style.display = 'none'; $('aivdl').style.display = 'none'; $('aivedit').style.display = 'none';
+  $('aivloading').style.display = 'block';
+  $('aivgen').disabled = true;
+  try {
+    const r = await fetch('/api/aivideo', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: (AIV_STYLE_PRE[aivStyle] || '') + p, duration: aivDur, aspectRatio: aivRatio }),
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(() => ({}));
+      throw new Error(j.message || ('HTTP ' + r.status));
+    }
+    const blob = await r.blob();
+    if (aivBlobURL) URL.revokeObjectURL(aivBlobURL);
+    aivBlobURL = URL.createObjectURL(blob);
+    const v = $('aivvideo'); v.src = aivBlobURL; v.style.display = '';
+    const dl = $('aivdl'); dl.style.display = ''; dl.href = aivBlobURL;
+    $('aivedit').style.display = '';
+    toast('AI video ready!');
+  } catch (e) {
+    console.error(e);
+    toast('Failed: ' + e.message, true);
+  }
+  $('aivloading').style.display = 'none';
+  $('aivgen').disabled = false;
+};
+$('aivedit').onclick = async () => {
+  if (!aivBlobURL) return;
+  try {
+    const blob = await (await fetch(aivBlobURL)).blob();
+    const file = new File([blob], 'arpo-ai-video.mp4', { type: 'video/mp4' });
+    $('aivideomodal').classList.remove('open');
+    openEditor(null);
+    setStatus('AI video loaded — describe your edit, then Generate AI Plan.', 'ok');
+    loadFile(file);
+  } catch (e) { toast('Could not load into editor.', true); }
 };
 
 /* ---------- auth (Supabase — hidden until owner configures) ---------- */

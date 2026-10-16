@@ -229,6 +229,41 @@
   </div>
 </div></div>
 
+<!-- AI VIDEO MODAL -->
+<div id="aivideomodal"><div class="modalbox" style="width:520px">
+  <h3>🎬 AI Video</h3>
+  <p>Likho kya dekhna hai — AI video banayega. Phir usay <b>arPo editor mein khol kar edit</b> bhi kar sakte ho!</p>
+  <input id="aivprompt" placeholder='e.g. "a cat astronaut floating in space, stars everywhere"' maxlength="800" style="width:100%;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13px">
+  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">STYLE</h4>
+  <div class="chiprow" id="aivstyle">
+    <button class="chip on" data-v="cinematic">🎬 Cinematic</button>
+    <button class="chip" data-v="anime">⛩️ Anime</button>
+    <button class="chip" data-v="nature">🌿 Nature</button>
+    <button class="chip" data-v="hyperreal">💎 Hyperreal</button>
+  </div>
+  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">DURATION</h4>
+  <div class="chiprow" id="aivdur">
+    <button class="chip" data-v="4">4 sec</button>
+    <button class="chip on" data-v="5">5 sec</button>
+  </div>
+  <h4 style="font-size:11px;font-weight:800;letter-spacing:1.4px;color:var(--muted);margin:12px 0 8px">ASPECT</h4>
+  <div class="chiprow" id="aivratio">
+    <button class="chip on" data-v="16:9">16:9</button>
+    <button class="chip" data-v="9:16">9:16</button>
+    <button class="chip" data-v="1:1">1:1</button>
+  </div>
+  <div id="aivout" style="margin-top:14px;text-align:center">
+    <video id="aivvideo" controls playsinline style="display:none;max-width:100%;border-radius:12px;border:1px solid var(--line);max-height:300px"></video>
+    <div id="aivloading" style="display:none;color:var(--muted);font-size:13px;padding:24px">🎬 Generating… 30–60 sec lag sakte hain, wait karo!</div>
+  </div>
+  <div class="modalbtns">
+    <button class="btn ghost" id="aivclose">Close</button>
+    <button class="btn ghost" id="aivedit" style="display:none">✂️ Edit in arPo</button>
+    <a class="btn ghost" id="aivdl" style="display:none;text-decoration:none" download="arpo-ai-video.mp4">⬇ Download</a>
+    <button class="btn primary" id="aivgen">Generate</button>
+  </div>
+</div></div>
+
 <div id="exportov"><div id="expbox">  <h3>🎬 Rendering…</h3>
   <div id="pbarwrap"><div id="pbar"></div></div>
   <div id="expmsg">starting…</div>
