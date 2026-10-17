@@ -653,12 +653,23 @@ function drawAuth() {
   $('authtitle').textContent = authMode === 'login' ? '🔐 Log in' : '📝 Sign up';
   $('authgo').textContent = authMode === 'login' ? 'Log in' : 'Create account';
   $('authswitch').textContent = authMode === 'login' ? 'New here? Sign up' : 'Have an account? Log in';
+  $('authforgot').style.display = authMode === 'login' ? '' : 'none';
   $('autherr').textContent = '';
 }
 $('loginbtn').onclick = () => { authMode = 'login'; drawAuth(); $('authmodal').classList.add('open'); };
 $('authcancel').onclick = () => $('authmodal').classList.remove('open');
 $('authmodal').addEventListener('click', e => { if (e.target.id === 'authmodal') $('authmodal').classList.remove('open'); });
 $('authswitch').onclick = () => { authMode = authMode === 'login' ? 'signup' : 'login'; drawAuth(); };
+$('authforgot').onclick = async () => {
+  if (!sb) return;
+  const em = $('authemail').value.trim();
+  if (!em) { $('autherr').textContent = 'Enter your email first, then click Forgot password.'; return; }
+  $('autherr').textContent = '…';
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(em);
+    $('autherr').textContent = error ? error.message : 'Reset link sent! Check your email.';
+  } catch (e) { $('autherr').textContent = 'Something went wrong — try again.'; }
+};
 $('authgo').onclick = async () => {
   if (!sb) return;
   const em = $('authemail').value.trim(), pw = $('authpass').value;
