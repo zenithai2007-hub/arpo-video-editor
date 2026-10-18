@@ -685,6 +685,124 @@ $('authgo').onclick = async () => {
   } catch (e) { $('autherr').textContent = 'Something went wrong — try again.'; }
 };
 
+/* ---------- quick commands: bolo kya karna hai, arPo kar dega ---------- */
+function parseTime(str) {
+  // "1:30" -> 90, "90" -> 90, "1m30s" -> 90
+  str = String(str).trim().toLowerCase();
+  let m = str.match(/(\d+):(\d+(?:\.\d+)?)/);
+  if (m) return +m[1] * 60 + +m[2];
+  m = str.match(/(?:(\d+)\s*m(?:in)?)?\s*(?:(\d+(?:\.\d+)?)\s*s(?:ec)?)?/);
+  if (m && (m[1] || m[2])) return (+m[1] || 0) * 60 + (+m[2] || 0);
+  m = str.match(/(\d+(?:\.\d+)?)/);
+  return m ? +m[1] : null;
+}
+function cmdStatus(msg, ok) {
+  const el = $('cmdstatus');
+  el.textContent = msg;
+  el.style.color = ok === false ? '#d33' : ok ? '#1a7f37' : 'var(--muted)';
+}
+function runCommand(raw) {
+  const cmd = (raw || '').trim().toLowerCase();
+  if (!cmd) { cmdStatus('Kuch likho — e.g. "cut first 10 seconds"', false); return; }
+  if (!S.file || !S.clips.length) { cmdStatus('Pehle video upload karo!', false); return; }
+  const D = S.duration;
+  const done = msg => { pushHistory(); renderAll(); syncChips(); autosave(); cmdStatus('✅ ' + msg, true); };
+
+  // --- cut first N seconds ---
+  let m = cmd.match(/(?:cut|remove|delete|trim)\s+(?:the\s+)?first\s+([\d:.m\s]+?)(?:\s*seconds?|\s*secs?)?$/);
+  if (m) {
+    const n = parseTime(m[1]);
+    if (n && n < D) {
+      S.clips.forEach(c => { c.start = Math.min(c.start + n, c.end - 0.2); });
+      S.clips = S.clips.filter(c => c.end > c.start);
+      return done(`First ${n}s cut kar diye.`);
+    }
+  }
+  // --- cut last N seconds ---
+  m = cmd.match(/(?:cut|remove|delete|trim)\s+(?:the\s+)?last\s+([\d:.m\s]+?)(?:\s*seconds?|\s*secs?)?$/);
+  if (m) {
+    const n = parseTime(m[1]);
+    if (n && n < D) {
+      S.clips.forEach(c => { c.end = Math.max(c.end - n, c.start + 0.2); });
+      S.clips = S.clips.filter(c => c.end > c.start);
+      return done(`Last ${n}s cut kar diye.`);
+    }
+  }
+  // --- cut/remove from X to Y ---
+  m = cmd.match(/(?:cut|remove|delete)\s+(?:from\s+)?([\d:.m\s]+?)\s+(?:to|-|–)\s+([\d:.m\s]+?)(?:\s*seconds?)?$/);
+  if (m) {
+    const a = parseTime(m[1]), b = parseTime(m[2]);
+    if (a != null && b != null && a < b) {
+      const out = [];
+      S.clips.forEach(c => {
+        if (c.end <= a || c.start >= b) { out.push(c); return; }
+        if (c.start < a) out.push(Object.assign({}, c, { id: ++clipSeq, end: a }));
+        if (c.end > b) out.push(Object.assign({}, c, { id: ++clipSeq, start: b }));
+      });
+      S.clips = out.filter(c => c.end > c.start + 0.1);
+      S.selected = S.clips.length ? S.clips[0].id : null;
+      return done(`${a}s se ${b}s tak ka part hata diya.`);
+    }
+  }
+  // --- keep only X to Y ---
+  m = cmd.match(/(?:keep|only)\s+(?:only\s+)?([\d:.m\s]+?)\s+(?:to|-|–)\s+([\d:.m\s]+?)(?:\s*seconds?)?$/);
+  if (m) {
+    const a = parseTime(m[1]), b = parseTime(m[2]);
+    if (a != null && b != null && a < b) {
+      const nc = newClip(Math.min(a, D - 0.2), Math.min(b, D), '');
+      S.clips = [nc]; S.selected = nc.id;
+      return done(`Sirf ${a}s–${b}s rakha, baaki hata diya.`);
+    }
+  }
+  // --- add captions ---
+  if (/caption|subtitle/.test(cmd)) {
+    const words = ['Hook', 'Best moment', 'Watch this', 'Key point', 'Highlight', 'Don’t miss'];
+    S.clips.forEach((c, i) => { if (!c.caption) c.caption = words[i % words.length]; });
+    return done('Captions laga diye! Edit karne ke liye clip select karo.');
+  }
+  // --- aspect ratio ---
+  if (/vertical|9:16|9\s*:\s*16|reel|tiktok|shorts|portrait/.test(cmd)) { S.aspect = '9:16'; return done('Vertical (9:16) kar diya.'); }
+  if (/square|1:1|1\s*:\s*1|instagram post/.test(cmd)) { S.aspect = '1:1'; return done('Square (1:1) kar diya.'); }
+  if (/wide|16:9|16\s*:\s*16|youtube|landscape|horizontal/.test(cmd)) { S.aspect = '16:9'; return done('Wide (16:9) kar diya.'); }
+  // --- speed ---
+  m = cmd.match(/(?:speed\s*(?:up)?\s*|faster\s*)(\d+(?:\.\d+)?)\s*x/);
+  if (m) {
+    const v = +m[1];
+    const allowed = [0.5, 1, 1.5, 2];
+    const best = allowed.reduce((p, c) => Math.abs(c - v) < Math.abs(p - v) ? c : p);
+    S.clips.forEach(c => c.speed = best);
+    return done(`Speed ${best}× kar di.`);
+  }
+  if (/slow\s*(?:down|motion)?/.test(cmd)) { S.clips.forEach(c => c.speed = 0.5); return done('Slow motion (0.5×) kar diya.'); }
+  if (/normal speed|1x/.test(cmd)) { S.clips.forEach(c => c.speed = 1); return done('Speed normal kar di.'); }
+  // --- mute / audio ---
+  if (/mute|remove audio|no sound|silent/.test(cmd)) { S.audioMode = 'mute'; return done('Audio mute kar diya.'); }
+  if (/unmute|keep audio|keep voice|restore audio/.test(cmd)) { S.audioMode = 'keep'; return done('Audio wapas on kar diya.'); }
+  // --- split ---
+  m = cmd.match(/split\s+(?:at\s+)?([\d:.m\s]+?)(?:\s*seconds?)?$/);
+  if (m) {
+    const t = parseTime(m[1]);
+    const c = S.clips.find(x => t > x.start + 0.2 && t < x.end - 0.2);
+    if (c && t != null) {
+      const i = S.clips.indexOf(c);
+      const a = newClip(c.start, +t.toFixed(1), c.caption); a.speed = c.speed; a.rotate = c.rotate;
+      const b = newClip(+t.toFixed(1), c.end, ''); b.speed = c.speed; b.rotate = c.rotate;
+      S.clips.splice(i, 1, a, b); S.selected = b.id;
+      return done(`${t}s par split kar diya.`);
+    }
+    return cmdStatus('Us time par koi clip nahi mili.', false);
+  }
+  // --- rotate ---
+  if (/rotate/.test(cmd)) {
+    const c = getSel();
+    if (c) { c.rotate = (c.rotate + 90) % 360; return done('Clip rotate kar di (' + c.rotate + '°).'); }
+  }
+  cmdStatus('Samajh nahi aaya — try: "cut first 10 seconds", "add captions", "make it vertical"', false);
+}
+$('cmdbtn').onclick = () => runCommand($('cmdinput').value);
+$('cmdinput').addEventListener('keydown', e => { if (e.key === 'Enter') runCommand($('cmdinput').value); });
+$$('#cmdexamples .chip').forEach(ch => ch.onclick = () => { $('cmdinput').value = ch.dataset.cmd; runCommand(ch.dataset.cmd); });
+
 /* ---------- init ---------- */
 $('startbtn').onclick = () => openEditor(null);
 $('backbtn').onclick = () => go('home');

@@ -131,6 +131,21 @@
             <textarea id="prompttext" maxlength="4000" placeholder='e.g. "Make a 30-second vertical Reel, keep the best moments, add short captions, keep original voice, strong opening."'></textarea>
             <button class="btn primary" id="planbtn" disabled style="align-self:flex-start;white-space:nowrap">Generate<br>AI Plan</button>
           </div>
+          <div id="cmdbar" style="margin-top:10px">
+            <label>⚡ Quick command <small style="color:var(--muted);font-weight:400">— bolo kya karna hai, arPo khud kar dega</small></label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <input id="cmdinput" placeholder='e.g. "cut first 10 seconds" · "add captions" · "make it vertical" · "mute audio"' maxlength="200" style="flex:1;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:10px 13px;font-size:13px">
+              <button class="btn primary" id="cmdbtn" style="white-space:nowrap">⚡ Do it</button>
+            </div>
+            <div id="cmdexamples" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">
+              <button class="chip sm" data-cmd="cut first 10 seconds">✂️ cut first 10s</button>
+              <button class="chip sm" data-cmd="add captions">💬 add captions</button>
+              <button class="chip sm" data-cmd="make it vertical">📱 vertical</button>
+              <button class="chip sm" data-cmd="mute audio">🔇 mute</button>
+              <button class="chip sm" data-cmd="speed up 2x">⚡ 2x speed</button>
+            </div>
+            <div id="cmdstatus" style="font-size:12.5px;min-height:20px;margin-top:6px;color:var(--muted)"></div>
+          </div>
           <div id="airow">
             <select id="modelsel" title="AI model"><option value="">— loading models… —</option></select>
             <button class="btn sm ghost" id="refreshmodels">↻</button>
