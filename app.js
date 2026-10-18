@@ -708,8 +708,8 @@ async function initAuth() {
     setUser(data.session ? data.session.user : null);
     sb.auth.onAuthStateChange((_ev, sess) => setUser(sess ? sess.user : null));
     if (!sb._user) {
-      /* 🔐 AUTH GATE: no session → force login/signup first */
-      authGate = true; authMode = 'signup'; drawAuth();
+      /* 🔐 AUTH GATE: no session → force login/signup first (login first!) */
+      authGate = true; authMode = 'login'; drawAuth();
       $('authcancel').style.display = 'none';
       $('authmodal').classList.add('open');
     } else {
