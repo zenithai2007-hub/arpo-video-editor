@@ -206,6 +206,36 @@
           </div>
         </div>
         <div class="insp-sec">
+          <h4>✨ Effects</h4>
+          <div class="chiprow" id="effectrow">
+            <button class="chip on" data-v="none">None</button>
+            <button class="chip" data-v="grayscale">B&W</button>
+            <button class="chip" data-v="sepia">Sepia</button>
+            <button class="chip" data-v="blur">Blur</button>
+            <button class="chip" data-v="sharpen">Sharpen</button>
+            <button class="chip" data-v="vignette">Vignette</button>
+          </div>
+          <h4 style="margin-top:12px">🎚️ Adjust</h4>
+          <div class="frow"><label>Brightness</label><input type="range" id="adjbright" min="-0.5" max="0.5" step="0.05" value="0"><span id="adjbrightv" style="font-size:11px;width:36px">0</span></div>
+          <div class="frow"><label>Contrast</label><input type="range" id="adjcontrast" min="0.5" max="1.5" step="0.05" value="1"><span id="adjcontrastv" style="font-size:11px;width:36px">1</span></div>
+          <div class="frow"><label>Saturation</label><input type="range" id="adjsat" min="0" max="2" step="0.1" value="1"><span id="adjsatv" style="font-size:11px;width:36px">1</span></div>
+        </div>
+        <div class="insp-sec">
+          <h4>🎬 Animation</h4>
+          <div class="frow"><label>Fade in (s)</label><input type="number" id="fadein" min="0" max="5" step="0.5" value="0" style="width:70px"></div>
+          <div class="frow"><label>Fade out (s)</label><input type="number" id="fadeout" min="0" max="5" step="0.5" value="0" style="width:70px"></div>
+          <div class="frow"><label>Mirror</label><button class="chip" id="flipbtn">🪞 Flip</button></div>
+        </div>
+        <div class="insp-sec">
+          <h4>📝 Text Overlay</h4>
+          <input id="textoverlay" placeholder="Text on video…" maxlength="80" style="width:100%;margin-bottom:8px">
+          <div class="chiprow" id="textstylerow">
+            <button class="chip on" data-v="bold">Bold</button>
+            <button class="chip" data-v="neon">Neon</button>
+            <button class="chip" data-v="minimal">Minimal</button>
+          </div>
+        </div>
+        <div class="insp-sec">
           <h4>Audio</h4>
           <div class="chiprow" id="audiorow">
             <button class="chip on" data-v="keep">Keep voice</button>

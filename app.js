@@ -11,6 +11,9 @@ const S = {
   history: [], hIndex: -1,
   aspect: '9:16', resolution: '720p', style: 'clean', transition: 'cut',
   audioMode: 'keep', volume: 100,
+  flip: false, fadeIn: 0, fadeOut: 0,
+  brightness: 0, contrast: 1, saturation: 1,
+  effect: 'none', textOverlay: '', textStyle: 'bold',
   aiPlan: null, planSource: null,
   model: localStorage.getItem('arpo_model') || '',
   aiReady: false,
@@ -283,7 +286,7 @@ function applyPlan(plan, source) {
 }
 
 /* ---------- history ---------- */
-function snap() { return JSON.stringify({ clips: S.clips, selected: S.selected, aspect: S.aspect, style: S.style, transition: S.transition, audioMode: S.audioMode, volume: S.volume, resolution: S.resolution }); }
+function snap() { return JSON.stringify({ clips: S.clips, selected: S.selected, aspect: S.aspect, style: S.style, transition: S.transition, audioMode: S.audioMode, volume: S.volume, resolution: S.resolution, flip: S.flip, fadeIn: S.fadeIn, fadeOut: S.fadeOut, brightness: S.brightness, contrast: S.contrast, saturation: S.saturation, effect: S.effect, textOverlay: S.textOverlay, textStyle: S.textStyle }); }
 function pushHistory() {
   S.history = S.history.slice(0, S.hIndex + 1);
   S.history.push(snap());
@@ -292,8 +295,8 @@ function pushHistory() {
 }
 function restore(json) {
   const o = JSON.parse(json);
-  Object.assign(S, { clips: o.clips, selected: o.selected, aspect: o.aspect, style: o.style, transition: o.transition, audioMode: o.audioMode, volume: o.volume, resolution: o.resolution });
-  renderAll(); syncChips(); autosave();
+  Object.assign(S, { clips: o.clips, selected: o.selected, aspect: o.aspect, style: o.style, transition: o.transition, audioMode: o.audioMode, volume: o.volume, resolution: o.resolution, flip: !!o.flip, fadeIn: o.fadeIn || 0, fadeOut: o.fadeOut || 0, brightness: o.brightness || 0, contrast: o.contrast || 1, saturation: o.saturation || 1, effect: o.effect || 'none', textOverlay: o.textOverlay || '', textStyle: o.textStyle || 'bold' });
+  renderAll(); syncChips(); syncNewControls(); autosave();
 }
 $('undobtn').onclick = () => { if (S.hIndex > 0) { S.hIndex--; restore(S.history[S.hIndex]); } };
 $('redobtn').onclick = () => { if (S.hIndex < S.history.length - 1) { S.hIndex++; restore(S.history[S.hIndex]); } };
@@ -394,6 +397,7 @@ function syncChips() {
   chipRow('transrow', () => S.transition, v => S.transition = v);
   chipRow('audiorow', () => S.audioMode, v => S.audioMode = v);
   $('vol').value = S.volume; $('volv').textContent = S.volume + '%';
+  if (typeof syncNewControls === 'function') syncNewControls();
 }
 $('vol').oninput = e => { S.volume = +e.target.value; $('volv').textContent = S.volume + '%'; autosaveLight(); };
 
@@ -449,13 +453,25 @@ function targetWH() {
   return hi ? [1080, 1080] : [720, 720];
 }
 function styleFilter() {
+  let f = '';
+  // adjust sliders
+  if (S.brightness !== 0 || S.contrast !== 1 || S.saturation !== 1)
+    f += `,eq=brightness=${S.brightness}:contrast=${S.contrast}:saturation=${S.saturation}`;
+  // effects
+  if (S.effect === 'grayscale') f += ',hue=s=0';
+  else if (S.effect === 'sepia') f += ',colorchannelmixer=.393:.769:.189:0:.349:.686:.168:0:.272:.534:.131';
+  else if (S.effect === 'blur') f += ',boxblur=8:2';
+  else if (S.effect === 'sharpen') f += ',unsharp=5:5:1.0:5:5:0.0';
+  else if (S.effect === 'vignette') f += ',vignette=PI/4';
+  // preset styles
   switch (S.style) {
-    case 'cinematic': return ',eq=contrast=1.08:saturation=0.92,colorbalance=gs=0.04:bs=-0.05';
-    case 'vibrant': return ',eq=contrast=1.05:saturation=1.35';
-    case 'warm': return ',eq=saturation=1.12,colorbalance=rs=0.12:gs=0.05:bs=-0.08';
-    default: return '';
+    case 'cinematic': f += ',eq=contrast=1.08:saturation=0.92,colorbalance=gs=0.04:bs=-0.05'; break;
+    case 'vibrant': f += ',eq=contrast=1.05:saturation=1.35'; break;
+    case 'warm': f += ',eq=saturation=1.12,colorbalance=rs=0.12:gs=0.05:bs=-0.08'; break;
   }
+  return f;
 }
+function flipFilter() { return S.flip ? ',hflip' : ''; }
 function rotFilter(r) {
   if (r === 90) return ',transpose=1';
   if (r === 180) return ',transpose=1,transpose=1';
@@ -486,7 +502,7 @@ $('exportbtn').onclick = async () => {
     if (S.transition === 'fade' && N > 1 && !useFade) toast('A clip is too short for fades — using hard cuts.');
     const mute = S.audioMode === 'mute', fc = [];
     S.clips.forEach((c, i) => {
-      fc.push(`[0:v]trim=start=${c.start}:end=${c.end},setpts=(PTS-STARTPTS)/${c.speed}${rotFilter(c.rotate)},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30${styleFilter()}[v${i}]`);
+      fc.push(`[0:v]trim=start=${c.start}:end=${c.end},setpts=(PTS-STARTPTS)/${c.speed}${rotFilter(c.rotate)}${flipFilter()},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30${styleFilter()}[v${i}]`);
       if (!mute) fc.push(`[0:a]atrim=start=${c.start}:end=${c.end},asetpts=PTS-STARTPTS,atempo=${c.speed},volume=${vols}[a${i}]`);
     });
     let vout = 'vcat', aout = 'acat';
@@ -502,6 +518,7 @@ $('exportbtn').onclick = async () => {
     }
     const F = useFade ? 0.5 : 0;
     let tcur = 0, capF = '';
+    const totalDur = durs.reduce((a, b) => a + b, 0) - (useFade ? F * (N - 1) : 0);
     S.clips.forEach((c, i) => {
       if (c.caption && haveFont) {
         const fs = Math.round(W / 16);
@@ -509,7 +526,17 @@ $('exportbtn').onclick = async () => {
       }
       tcur += durs[i] - (useFade && i < N - 1 ? F : 0);
     });
-    fc.push(capF ? `[${vout}]${capF.slice(1)}[vout]` : `[${vout}]copy[vout]`);
+    // text overlay (whole video)
+    if (S.textOverlay && haveFont) {
+      const fs = Math.round(W / 12);
+      const styles = { bold: ':fontcolor=white:borderw=3:bordercolor=black', neon: ':fontcolor=yellow:borderw=2:bordercolor=black', minimal: ':fontcolor=white' };
+      capF += `,drawtext=fontfile=/font.ttf:text='${ffEsc(S.textOverlay)}':fontsize=${fs}${styles[S.textStyle] || styles.bold}:x=(w-text_w)/2:y=80`;
+    }
+    // fade in/out animation
+    let animF = '';
+    if (S.fadeIn > 0) animF += `,fade=t=in:st=0:d=${S.fadeIn}`;
+    if (S.fadeOut > 0) animF += `,fade=t=out:st=${Math.max(0, totalDur - S.fadeOut).toFixed(2)}:d=${S.fadeOut}`;
+    fc.push(capF || animF ? `[${vout}]${(capF + animF).slice(1)}[vout]` : `[${vout}]copy[vout]`);
     if (!mute && aout !== 'acat') fc.push(`[${aout}]acopy[acat]`);
     const args = ['-i', 'input.' + ext, '-filter_complex', fc.join(';'), '-map', '[vout]', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '23', '-pix_fmt', 'yuv420p'];
     if (mute) args.push('-an'); else args.push('-map', '[acat]', '-c:a', 'aac', '-b:a', '128k');
@@ -797,11 +824,51 @@ function runCommand(raw) {
     const c = getSel();
     if (c) { c.rotate = (c.rotate + 90) % 360; return done('Clip rotate kar di (' + c.rotate + '°).'); }
   }
+  // --- mirror/flip ---
+  if (/mirror|flip/.test(cmd)) { S.flip = !S.flip; syncNewControls(); return done(S.flip ? '🪞 Mirror ON!' : 'Mirror OFF'); }
+  // --- fade ---
+  m = cmd.match(/fade\s*in\s*([\d.]+)?/);
+  if (m) { S.fadeIn = +(m[1] || 1); syncNewControls(); return done(`Fade in (${S.fadeIn}s) laga diya.`); }
+  m = cmd.match(/fade\s*out\s*([\d.]+)?/);
+  if (m) { S.fadeOut = +(m[1] || 1); syncNewControls(); return done(`Fade out (${S.fadeOut}s) laga diya.`); }
+  // --- effects ---
+  if (/black and white|grayscale|b&w/.test(cmd)) { S.effect = 'grayscale'; syncNewControls(); return done('Black & white effect!'); }
+  if (/sepia/.test(cmd)) { S.effect = 'sepia'; syncNewControls(); return done('Sepia effect!'); }
+  if (/blur/.test(cmd)) { S.effect = 'blur'; syncNewControls(); return done('Blur effect!'); }
+  if (/(sharpen|sharp)/.test(cmd)) { S.effect = 'sharpen'; syncNewControls(); return done('Sharpen effect!'); }
+  if (/vignette/.test(cmd)) { S.effect = 'vignette'; syncNewControls(); return done('Vignette effect!'); }
+  if (/remove effect|no effect|clear effect/.test(cmd)) { S.effect = 'none'; syncNewControls(); return done('Effect hata diya.'); }
+  // --- text overlay ---
+  m = cmd.match(/(?:add text|text)\s+["']?(.+?)["']?$/);
+  if (m && m[1].length > 1) { S.textOverlay = m[1].slice(0, 80); syncNewControls(); return done(`Text lagaya: "${S.textOverlay}"`); }
   cmdStatus('Samajh nahi aaya — try: "cut first 10 seconds", "add captions", "make it vertical"', false);
 }
 $('cmdbtn').onclick = () => runCommand($('cmdinput').value);
 $('cmdinput').addEventListener('keydown', e => { if (e.key === 'Enter') runCommand($('cmdinput').value); });
 $$('#cmdexamples .chip').forEach(ch => ch.onclick = () => { $('cmdinput').value = ch.dataset.cmd; runCommand(ch.dataset.cmd); });
+
+/* ---------- new controls: effects, adjust, animation, text ---------- */
+function syncNewControls() {
+  $$('#effectrow .chip').forEach(ch => ch.classList.toggle('on', ch.dataset.v === S.effect));
+  $$('#textstylerow .chip').forEach(ch => ch.classList.toggle('on', ch.dataset.v === S.textStyle));
+  $('adjbright').value = S.brightness; $('adjbrightv').textContent = S.brightness;
+  $('adjcontrast').value = S.contrast; $('adjcontrastv').textContent = S.contrast;
+  $('adjsat').value = S.saturation; $('adjsatv').textContent = S.saturation;
+  $('fadein').value = S.fadeIn; $('fadeout').value = S.fadeOut;
+  $('textoverlay').value = S.textOverlay || '';
+  $('flipbtn').classList.toggle('on', S.flip);
+}
+$$('#effectrow .chip').forEach(ch => ch.onclick = () => { S.effect = ch.dataset.v; pushHistory(); syncNewControls(); autosave(); });
+$$('#textstylerow .chip').forEach(ch => ch.onclick = () => { S.textStyle = ch.dataset.v; pushHistory(); syncNewControls(); autosave(); });
+$('adjbright').oninput = e => { S.brightness = +e.target.value; $('adjbrightv').textContent = S.brightness; autosaveLight(); };
+$('adjcontrast').oninput = e => { S.contrast = +e.target.value; $('adjcontrastv').textContent = S.contrast; autosaveLight(); };
+$('adjsat').oninput = e => { S.saturation = +e.target.value; $('adjsatv').textContent = S.saturation; autosaveLight(); };
+$('adjbright').onchange = () => pushHistory(); $('adjcontrast').onchange = () => pushHistory(); $('adjsat').onchange = () => pushHistory();
+$('fadein').onchange = e => { S.fadeIn = Math.max(0, +e.target.value || 0); pushHistory(); autosave(); };
+$('fadeout').onchange = e => { S.fadeOut = Math.max(0, +e.target.value || 0); pushHistory(); autosave(); };
+$('flipbtn').onclick = () => { S.flip = !S.flip; pushHistory(); syncNewControls(); autosave(); toast(S.flip ? '🪞 Mirrored!' : 'Mirror off'); };
+$('textoverlay').oninput = e => { S.textOverlay = e.target.value.slice(0, 80); autosaveLight(); };
+$('textoverlay').onchange = () => pushHistory();
 
 /* ---------- init ---------- */
 $('startbtn').onclick = () => openEditor(null);
