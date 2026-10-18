@@ -197,10 +197,10 @@ body.landing{overflow-y:auto;overflow-x:hidden;background:#fefcff;color:#1a1a2e}
 #lnav nav{display:flex;gap:22px;margin-left:auto}
 #lnav nav a{color:var(--muted);text-decoration:none;font-size:13.5px;font-weight:600}
 #lnav nav a:hover{color:#fff}
-.btn.light{background:#f4f4f5;border-color:#f4f4f5;color:#111}
-.btn.light:hover{background:#fff;color:#000}
-.btn.dark{background:transparent;border-color:#3f3f46;color:#f4f4f5}
-.btn.dark:hover{border-color:#f4f4f5;background:transparent;color:#fff}
+.btn.light{background:var(--grad);border:none;color:#fff;box-shadow:0 3px 12px rgba(255,107,157,.3)}
+.btn.light:hover{background:linear-gradient(135deg,#ff5b8d,#983df7);color:#fff}
+.btn.dark{background:#fff;border:1.5px solid var(--purple);color:var(--purple)}
+.btn.dark:hover{border-color:var(--purple);background:#faf5ff;color:var(--purple)}
 #lhero{text-align:center;padding:88px 0 70px}
 .lpill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:2.5px;border:1px solid #3f3f46;border-radius:30px;padding:9px 20px;color:var(--muted);margin-bottom:28px}
 #lhero h1{font-size:clamp(48px,9vw,96px);font-weight:900;letter-spacing:-3px;line-height:1.02;margin-bottom:22px}
@@ -237,8 +237,8 @@ body.landing{overflow-y:auto;overflow-x:hidden;background:#fefcff;color:#1a1a2e}
 .bacard p{color:var(--muted);font-size:14px;line-height:1.6}
 .baarrow{font-size:34px;align-self:center;color:#52525b}
 .fmtrow{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-bottom:22px}
-.fmtrow span{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 26px;font-size:13.5px;color:var(--muted)}
-.fmtrow b{display:block;font-size:20px;color:#fff;margin-bottom:4px}
+.fmtrow span{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 26px;font-size:13.5px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:6px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.fmtrow b{display:block;font-size:20px;color:var(--ink);margin-bottom:4px}
 .lnote{text-align:center;color:#a855f7;font-size:13px}
 .pricegrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:960px;margin:0 auto 22px}
 .price{background:#fff;border:1px solid var(--line);border-radius:22px;padding:36px 30px;position:relative}
