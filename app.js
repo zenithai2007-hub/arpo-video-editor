@@ -697,8 +697,8 @@ $('aivedit').onclick = async () => {
   } catch (e) { toast('Could not load into editor.', true); }
 };
 
-/* ---------- auth (Supabase — hidden until owner configures) ---------- */
-let sb = null;
+/* ---------- auth (Supabase — gate: login first, security!) ---------- */
+let sb = null, authGate = false;
 async function initAuth() {
   try {
     const r = await fetch('/api/config'); const c = await r.json();
@@ -707,11 +707,20 @@ async function initAuth() {
     const { data } = await sb.auth.getSession();
     setUser(data.session ? data.session.user : null);
     sb.auth.onAuthStateChange((_ev, sess) => setUser(sess ? sess.user : null));
-    if (!sb._user) { $('loginbtn').style.display = ''; const sb2 = $('signupbtn'); if (sb2) sb2.style.display = ''; const eb = $('eloginbtn'); if (eb) eb.style.display = ''; }
+    if (!sb._user) {
+      /* 🔐 AUTH GATE: no session → force login/signup first */
+      authGate = true; authMode = 'signup'; drawAuth();
+      $('authcancel').style.display = 'none';
+      $('authmodal').classList.add('open');
+    } else {
+      $('loginbtn').style.display = 'none'; const sb2 = $('signupbtn'); if (sb2) sb2.style.display = 'none'; const eb = $('eloginbtn'); if (eb) eb.style.display = 'none';
+    }
   } catch (e) { /* auth unavailable — app works without it */ }
 }
 function setUser(u) {
   sb._user = u || null;
+  /* release the gate once logged in */
+  if (u && authGate) { authGate = false; $('authmodal').classList.remove('open'); $('authcancel').style.display = ''; toast('Welcome! 🎉'); }
   $('loginbtn').style.display = u ? 'none' : '';
   const sg = $('signupbtn'); if (sg) sg.style.display = u ? 'none' : '';
   const eb = $('eloginbtn'); if (eb) eb.style.display = u ? 'none' : '';
@@ -725,6 +734,7 @@ function setUser(u) {
 let authMode = 'login';
 function drawAuth() {
   $('authtitle').textContent = authMode === 'login' ? '🔐 Log in' : '📝 Sign up';
+  $('authsub').textContent = authGate ? 'Welcome to arPo! Pehle account banao ya log in karo. 🔐' : 'Your projects & creations, on any device. 🔐';
   $('authgo').textContent = authMode === 'login' ? 'Log in' : 'Create account';
   $('authswitch').textContent = authMode === 'login' ? 'New here? Sign up' : 'Have an account? Log in';
   $('authforgot').style.display = authMode === 'login' ? '' : 'none';
@@ -733,8 +743,8 @@ function drawAuth() {
 $('loginbtn').onclick = () => { authMode = 'login'; drawAuth(); $('authmodal').classList.add('open'); };
 $('signupbtn').onclick = () => { authMode = 'signup'; drawAuth(); $('authmodal').classList.add('open'); };
 $('eloginbtn').onclick = () => { authMode = 'login'; drawAuth(); $('authmodal').classList.add('open'); };
-$('authcancel').onclick = () => $('authmodal').classList.remove('open');
-$('authmodal').addEventListener('click', e => { if (e.target.id === 'authmodal') $('authmodal').classList.remove('open'); });
+$('authcancel').onclick = () => { if (!authGate) $('authmodal').classList.remove('open'); };
+$('authmodal').addEventListener('click', e => { if (e.target.id === 'authmodal' && !authGate) $('authmodal').classList.remove('open'); });
 $('authswitch').onclick = () => { authMode = authMode === 'login' ? 'signup' : 'login'; drawAuth(); };
 $('authforgot').onclick = async () => {
   if (!sb) return;
