@@ -127,7 +127,7 @@ function loadFile(f) {
     const fe = $('fileinfo'); fe.style.display = 'block';
     fe.innerHTML = '<b>' + esc(f.name) + '</b><br>Duration: ' + fmt(S.duration) + ' · ' + S.vw + '×' + S.vh + '<br>Size: ' + mb + ' MB';
     $('planbtn').disabled = false; $('exportbtn').disabled = false; const cb=$('cloudbtn'); if(cb) cb.disabled = false;
-    if (S.duration > 600) toast('Long video — export will be slow in the browser. Shorter is better.');
+    if (S.duration > 600) toast('Long video — export slow.');
     S.clips = [newClip(0, S.duration, '')];
     S.selected = S.clips[0].id; S.aiPlan = null; S.planSource = null;
     pushHistory(); renderAll(); updateTimecode(); autosave();
@@ -227,7 +227,7 @@ $('planbtn').onclick = async () => {
       applyPlan(demoPlan(prompt), 'demo');
     }
   } catch (e) {
-    console.error(e);
+    
     setStatus('AI failed (' + e.message + ') — demo plan instead.', 'err');
     try { applyPlan(demoPlan($('prompttext').value.trim()), 'demo'); }
     catch (e2) { toast('Plan failed: ' + e.message, true); }
@@ -368,7 +368,7 @@ $('delclip').onclick = () => {
 $('splitbtn').onclick = () => {
   const c = getSel(); if (!c || !S.duration) return;
   const t = $('preview').currentTime;
-  if (t <= c.start + 0.2 || t >= c.end - 0.2) { toast('Move the playhead inside the selected clip to split.', true); return; }
+  if (t <= c.start + 0.2 || t >= c.end - 0.2) { toast('Playhead clip ke andar rakho.', true); return; }
   const i = S.clips.indexOf(c);
   const a = newClip(c.start, +t.toFixed(1), c.caption); a.speed = c.speed; a.rotate = c.rotate;
   const b = newClip(+t.toFixed(1), c.end, ''); b.speed = c.speed; b.rotate = c.rotate;
@@ -563,7 +563,7 @@ $('exportbtn').onclick = async () => {
     $('expdone').style.display = 'block';
     toast('Export ready — download your MP4!');
   } catch (e) {
-    console.error(e);
+    
     $('expmsg').innerHTML = '<span style="color:#d33">Render failed: ' + esc(e.message || e) + '</span><br><br>Try a shorter video, hard cuts, or reload and retry.';
   }
 };
@@ -620,7 +620,7 @@ $('thumbrm').onclick = async () => {
       $('thumbloading').style.display = 'none';
       $('thumbrm').style.display = 'none';
       toast('✅ Background removed!');
-    } catch (e) { console.error(e); $('thumbloading').style.display = 'none'; toast('BG remove failed: ' + e.message, true); }
+    } catch (e) {  $('thumbloading').style.display = 'none'; toast('BG remove failed: ' + e.message, true); }
     bgRmLoading = null;
   })();
   return bgRmLoading;
@@ -669,7 +669,7 @@ $('aivgen').onclick = async () => {
     $('aivedit').style.display = '';
     toast('AI video ready!');
   } catch (e) {
-    console.error(e);
+    
     toast('Failed: ' + e.message, true);
   }
   $('aivloading').style.display = 'none';
