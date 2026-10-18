@@ -14,6 +14,7 @@ const S = {
   flip: false, fadeIn: 0, fadeOut: 0,
   brightness: 0, contrast: 1, saturation: 1,
   effect: 'none', textOverlay: '', textStyle: 'bold',
+  voiceFx: 'none', denoise: false,
   aiPlan: null, planSource: null,
   model: localStorage.getItem('arpo_model') || '',
   aiReady: false,
@@ -286,7 +287,7 @@ function applyPlan(plan, source) {
 }
 
 /* ---------- history ---------- */
-function snap() { return JSON.stringify({ clips: S.clips, selected: S.selected, aspect: S.aspect, style: S.style, transition: S.transition, audioMode: S.audioMode, volume: S.volume, resolution: S.resolution, flip: S.flip, fadeIn: S.fadeIn, fadeOut: S.fadeOut, brightness: S.brightness, contrast: S.contrast, saturation: S.saturation, effect: S.effect, textOverlay: S.textOverlay, textStyle: S.textStyle }); }
+function snap() { return JSON.stringify({ clips: S.clips, selected: S.selected, aspect: S.aspect, style: S.style, transition: S.transition, audioMode: S.audioMode, volume: S.volume, resolution: S.resolution, flip: S.flip, fadeIn: S.fadeIn, fadeOut: S.fadeOut, brightness: S.brightness, contrast: S.contrast, saturation: S.saturation, effect: S.effect, textOverlay: S.textOverlay, textStyle: S.textStyle, voiceFx: S.voiceFx, denoise: S.denoise }); }
 function pushHistory() {
   S.history = S.history.slice(0, S.hIndex + 1);
   S.history.push(snap());
@@ -295,7 +296,7 @@ function pushHistory() {
 }
 function restore(json) {
   const o = JSON.parse(json);
-  Object.assign(S, { clips: o.clips, selected: o.selected, aspect: o.aspect, style: o.style, transition: o.transition, audioMode: o.audioMode, volume: o.volume, resolution: o.resolution, flip: !!o.flip, fadeIn: o.fadeIn || 0, fadeOut: o.fadeOut || 0, brightness: o.brightness || 0, contrast: o.contrast || 1, saturation: o.saturation || 1, effect: o.effect || 'none', textOverlay: o.textOverlay || '', textStyle: o.textStyle || 'bold' });
+  Object.assign(S, { clips: o.clips, selected: o.selected, aspect: o.aspect, style: o.style, transition: o.transition, audioMode: o.audioMode, volume: o.volume, resolution: o.resolution, flip: !!o.flip, fadeIn: o.fadeIn || 0, fadeOut: o.fadeOut || 0, brightness: o.brightness || 0, contrast: o.contrast || 1, saturation: o.saturation || 1, effect: o.effect || 'none', textOverlay: o.textOverlay || '', textStyle: o.textStyle || 'bold', voiceFx: o.voiceFx || 'none', denoise: !!o.denoise });
   renderAll(); syncChips(); syncNewControls(); autosave();
 }
 $('undobtn').onclick = () => { if (S.hIndex > 0) { S.hIndex--; restore(S.history[S.hIndex]); } };
@@ -472,6 +473,16 @@ function styleFilter() {
   return f;
 }
 function flipFilter() { return S.flip ? ',hflip' : ''; }
+function voiceFxFilter() {
+  switch (S.voiceFx) {
+    case 'robot': return ',vibrato=f=12:d=0.8,aecho=0.8:0.7:30:0.25';
+    case 'echo': return ',aecho=0.8:0.88:80:0.35';
+    case 'chipmunk': return ',asetrate=44100*1.4,aresample=44100';
+    case 'deep': return ',asetrate=44100*0.7,aresample=44100';
+    default: return '';
+  }
+}
+function denoiseFilter() { return S.denoise ? ',afftdn=nf=-25' : ''; }
 function rotFilter(r) {
   if (r === 90) return ',transpose=1';
   if (r === 180) return ',transpose=1,transpose=1';
@@ -503,7 +514,7 @@ $('exportbtn').onclick = async () => {
     const mute = S.audioMode === 'mute', fc = [];
     S.clips.forEach((c, i) => {
       fc.push(`[0:v]trim=start=${c.start}:end=${c.end},setpts=(PTS-STARTPTS)/${c.speed}${rotFilter(c.rotate)}${flipFilter()},scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},setsar=1,fps=30${styleFilter()}[v${i}]`);
-      if (!mute) fc.push(`[0:a]atrim=start=${c.start}:end=${c.end},asetpts=PTS-STARTPTS,atempo=${c.speed},volume=${vols}[a${i}]`);
+      if (!mute) fc.push(`[0:a]atrim=start=${c.start}:end=${c.end},asetpts=PTS-STARTPTS,atempo=${c.speed}${voiceFxFilter()}${denoiseFilter()},volume=${vols}[a${i}]`);
     });
     let vout = 'vcat', aout = 'acat';
     if (N === 1) { fc.push('[v0]copy[vcat]'); if (!mute) fc.push('[a0]acopy[acat]'); }
@@ -579,16 +590,40 @@ $('thumbgen').onclick = () => {
   const wh = thumbRatio === '16:9' ? [1280, 720] : thumbRatio === '9:16' ? [720, 1280] : [1024, 1024];
   const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(p) +
     '?width=' + wh[0] + '&height=' + wh[1] + '&nologo=true&seed=' + Math.floor(Math.random() * 999999);
-  $('thumbimg').style.display = 'none'; $('thumbdl').style.display = 'none';
+  $('thumbimg').style.display = 'none'; $('thumbdl').style.display = 'none'; $('thumbrm').style.display = 'none';
   $('thumbloading').style.display = 'block';
   const img = $('thumbimg');
   img.onload = () => {
     $('thumbloading').style.display = 'none'; img.style.display = '';
     const dl = $('thumbdl'); dl.style.display = ''; dl.href = url;
+    $('thumbrm').style.display = '';
     toast('Thumbnail ready!');
   };
   img.onerror = () => { $('thumbloading').style.display = 'none'; toast('Generation failed — try again.', true); };
   img.src = url;
+};
+/* background removal (free AI, in-browser) */
+let bgRmLoading = null;
+$('thumbrm').onclick = async () => {
+  const img = $('thumbimg');
+  if (!img.src || bgRmLoading) return;
+  bgRmLoading = (async () => {
+    try {
+      toast('🪄 Removing background… (first time downloads AI model ~40MB)');
+      $('thumbloading').style.display = 'block'; $('thumbloading').textContent = '🪄 AI removing background…';
+      const { removeBackground } = await import('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.5.5/+esm');
+      const blob = await (await fetch(img.src)).blob();
+      const out = await removeBackground(blob);
+      const url = URL.createObjectURL(out);
+      img.src = url;
+      $('thumbdl').href = url;
+      $('thumbloading').style.display = 'none';
+      $('thumbrm').style.display = 'none';
+      toast('✅ Background removed!');
+    } catch (e) { console.error(e); $('thumbloading').style.display = 'none'; toast('BG remove failed: ' + e.message, true); }
+    bgRmLoading = null;
+  })();
+  return bgRmLoading;
 };
 
 /* ---------- AI video (text-to-video, server key) ---------- */
@@ -841,6 +876,13 @@ function runCommand(raw) {
   // --- text overlay ---
   m = cmd.match(/(?:add text|text)\s+["']?(.+?)["']?$/);
   if (m && m[1].length > 1) { S.textOverlay = m[1].slice(0, 80); syncNewControls(); return done(`Text lagaya: "${S.textOverlay}"`); }
+  // --- voice effects ---
+  if (/robot voice/.test(cmd)) { S.voiceFx = 'robot'; syncNewControls(); return done('🤖 Robot voice!'); }
+  if (/echo/.test(cmd)) { S.voiceFx = 'echo'; syncNewControls(); return done('🔊 Echo effect!'); }
+  if (/chipmunk/.test(cmd)) { S.voiceFx = 'chipmunk'; syncNewControls(); return done('🐿️ Chipmunk voice!'); }
+  if (/deep voice/.test(cmd)) { S.voiceFx = 'deep'; syncNewControls(); return done('🎩 Deep voice!'); }
+  if (/normal voice|remove voice effect/.test(cmd)) { S.voiceFx = 'none'; syncNewControls(); return done('Voice normal.'); }
+  if (/noise reduction|remove noise|clean audio/.test(cmd)) { S.denoise = true; syncNewControls(); return done('🔇 Noise reduction ON!'); }
   cmdStatus('Samajh nahi aaya — try: "cut first 10 seconds", "add captions", "make it vertical"', false);
 }
 $('cmdbtn').onclick = () => runCommand($('cmdinput').value);
@@ -851,6 +893,9 @@ $$('#cmdexamples .chip').forEach(ch => ch.onclick = () => { $('cmdinput').value 
 function syncNewControls() {
   $$('#effectrow .chip').forEach(ch => ch.classList.toggle('on', ch.dataset.v === S.effect));
   $$('#textstylerow .chip').forEach(ch => ch.classList.toggle('on', ch.dataset.v === S.textStyle));
+  $$('#voicefxrow .chip').forEach(ch => ch.classList.toggle('on', ch.dataset.v === S.voiceFx));
+  $('denoisebtn').textContent = S.denoise ? 'ON ✓' : 'OFF';
+  $('denoisebtn').classList.toggle('on', S.denoise);
   $('adjbright').value = S.brightness; $('adjbrightv').textContent = S.brightness;
   $('adjcontrast').value = S.contrast; $('adjcontrastv').textContent = S.contrast;
   $('adjsat').value = S.saturation; $('adjsatv').textContent = S.saturation;
@@ -860,6 +905,8 @@ function syncNewControls() {
 }
 $$('#effectrow .chip').forEach(ch => ch.onclick = () => { S.effect = ch.dataset.v; pushHistory(); syncNewControls(); autosave(); });
 $$('#textstylerow .chip').forEach(ch => ch.onclick = () => { S.textStyle = ch.dataset.v; pushHistory(); syncNewControls(); autosave(); });
+$$('#voicefxrow .chip').forEach(ch => ch.onclick = () => { S.voiceFx = ch.dataset.v; pushHistory(); syncNewControls(); autosave(); toast(ch.dataset.v === 'none' ? 'Voice normal' : '🎙️ Voice effect: ' + ch.textContent.trim()); });
+$('denoisebtn').onclick = () => { S.denoise = !S.denoise; pushHistory(); syncNewControls(); autosave(); toast(S.denoise ? '🔇 Noise reduction ON' : 'Noise reduction OFF'); };
 $('adjbright').oninput = e => { S.brightness = +e.target.value; $('adjbrightv').textContent = S.brightness; autosaveLight(); };
 $('adjcontrast').oninput = e => { S.contrast = +e.target.value; $('adjcontrastv').textContent = S.contrast; autosaveLight(); };
 $('adjsat').oninput = e => { S.saturation = +e.target.value; $('adjsatv').textContent = S.saturation; autosaveLight(); };

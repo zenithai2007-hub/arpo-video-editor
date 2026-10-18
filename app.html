@@ -236,6 +236,17 @@
           </div>
         </div>
         <div class="insp-sec">
+          <h4>🎙️ Voice Effects</h4>
+          <div class="chiprow" id="voicefxrow">
+            <button class="chip on" data-v="none">Normal</button>
+            <button class="chip" data-v="robot">🤖 Robot</button>
+            <button class="chip" data-v="echo">🔊 Echo</button>
+            <button class="chip" data-v="chipmunk">🐿️ Chipmunk</button>
+            <button class="chip" data-v="deep">🎩 Deep</button>
+          </div>
+          <div class="frow" style="margin-top:10px"><label>🔇 Noise reduction</label><button class="chip" id="denoisebtn">OFF</button></div>
+        </div>
+        <div class="insp-sec">
           <h4>Audio</h4>
           <div class="chiprow" id="audiorow">
             <button class="chip on" data-v="keep">Keep voice</button>
@@ -291,6 +302,7 @@
   </div>
   <div class="modalbtns">
     <button class="btn ghost" id="thumbclose">Close</button>
+    <button class="btn ghost" id="thumbrm" style="display:none">🪄 Remove BG</button>
     <a class="btn ghost" id="thumbdl" style="display:none;text-decoration:none" download="arpo-thumbnail.jpg">⬇ Download</a>
     <button class="btn primary" id="thumbgen">Generate</button>
   </div>
