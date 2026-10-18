@@ -41,14 +41,14 @@ function setStatus(msg, cls) { const s = $('planstatus'); s.textContent = msg; s
 
 /* ---------- templates ---------- */
 const TEMPLATES = [
-  { id: 'recap', icon: '🎬', name: 'Story Recap', desc: 'Main kahani ke important moments ka recap.', prompt: 'Punchy recap: key moments only, strong hook, short captions.' },
-  { id: 'podcast', icon: '🎙️', name: 'Podcast Highlights', desc: 'Bolne wale content ke best highlights.', prompt: 'Best highlights from this talking video: original voice, short captions, tight pacing.' },
-  { id: 'cine', icon: '🎞️', name: 'Cinematic Short', desc: 'Cinematic pacing aur dramatic look.', prompt: 'Make a cinematic short: dramatic pacing, best visuals only, warm cinematic look, hard cuts on beat.' },
-  { id: 'promo', icon: '📢', name: 'Product Promo', desc: 'Product ke liye energetic promo cut.', prompt: 'Fast product promo: clear product shots, energetic cuts, bold captions, strong CTA.' },
-  { id: 'travel', icon: '✈️', name: 'Travel Vlog', desc: 'Trip ki best memories ka montage.', prompt: 'Travel montage: best scenic moments, smooth pacing, place captions.' },
-  { id: 'fitness', icon: '💪', name: 'Fitness Reel', desc: 'Workout clips ka powerful reel.', prompt: 'High-energy fitness reel: hardest reps, fast cuts, bold captions.' },
-  { id: 'food', icon: '🍔', name: 'Food Review', desc: 'Dishes ke tasty close-ups.', prompt: 'Tasty food review: dish close-ups, quick cuts, name captions.' },
-  { id: 'motivation', icon: '🔥', name: 'Motivational', desc: 'Speech ka powerful short.', prompt: 'Motivational short: strongest lines, bold key-phrase captions, cinematic.' },
+  { id: 'recap', icon: '🎬', name: 'Story Recap', desc: 'Key moments recap.', prompt: 'Punchy recap: key moments only, strong hook, short captions.' },
+  { id: 'podcast', icon: '🎙️', name: 'Podcast Highlights', desc: 'Best highlights.', prompt: 'Best highlights from this talking video: original voice, short captions, tight pacing.' },
+  { id: 'cine', icon: '🎞️', name: 'Cinematic Short', desc: 'Dramatic look.', prompt: 'Make a cinematic short: dramatic pacing, best visuals only, warm cinematic look, hard cuts on beat.' },
+  { id: 'promo', icon: '📢', name: 'Product Promo', desc: 'Energetic promo.', prompt: 'Fast product promo: clear product shots, energetic cuts, bold captions, strong CTA.' },
+  { id: 'travel', icon: '✈️', name: 'Travel Vlog', desc: 'Travel montage.', prompt: 'Travel montage: best scenic moments, smooth pacing, place captions.' },
+  { id: 'fitness', icon: '💪', name: 'Fitness Reel', desc: 'Workout reel.', prompt: 'High-energy fitness reel: hardest reps, fast cuts, bold captions.' },
+  { id: 'food', icon: '🍔', name: 'Food Review', desc: 'Food close-ups.', prompt: 'Tasty food review: dish close-ups, quick cuts, name captions.' },
+  { id: 'motivation', icon: '🔥', name: 'Motivational', desc: 'Powerful short.', prompt: 'Motivational short: strongest lines, bold key-phrase captions, cinematic.' },
 ];
 /* ---------- views (Magic Hour style) ---------- */
 function showView(v) {
