@@ -928,11 +928,7 @@ $('viralbtn').onclick = () => {
   if (!S.file || !S.clips.length) { toast('Pehle video upload karo!', true); return; }
   S.aspect = '9:16'; S.style = 'vibrant'; S.viral = true;
   // punchy captions if missing
-  const viralWords = [
-    ['STOP', 'scrolling', 'NOW'], ['This', 'will', 'BLOW', 'your mind'],
-    ['Watch', 'till', 'the', 'END'], ['You', 'WONT', 'believe', 'this'],
-    ['The', 'SECRET', 'is', 'out'], ['This', 'changes', 'EVERYTHING'],
-  ];
+  const viralWords = [['STOP','scrolling','NOW'],['This','will','BLOW','your mind'],['Watch','till','the','END'],['You','WONT','believe','this'],['The','SECRET','is','out'],['This','changes','EVERYTHING']];
   S.clips.forEach((c, i) => {
     if (!c.caption) c.caption = viralWords[i % viralWords.length].join(' ');
   });
