@@ -304,3 +304,30 @@ body.landing{overflow-y:auto;overflow-x:hidden;background:#fefcff;color:#1a1a2e}
   .sbottom{display:none}
   .dashview{padding:22px 16px}
 }
+
+/* ---------- CapCut-simple mobile editor ---------- */
+#mwrap{flex:1;display:flex;flex-direction:column;min-height:0;background:var(--bg)}
+#m-upload{padding:20px}
+#m-upload #dropzone{margin:0;border:2px dashed var(--purple);border-radius:20px;padding:50px 20px;text-align:center;background:linear-gradient(135deg,#faf5ff,#fdf2ff);cursor:pointer}
+#m-upload #dropzone .big{font-size:48px;margin-bottom:12px}
+#m-upload #dropzone b{font-size:17px}
+#m-preview{flex:1;min-height:200px;display:flex;align-items:center;justify-content:center;background:#000;position:relative}
+#m-preview #previewwrap{width:100%;height:100%;display:flex;align-items:center;justify-content:center;min-height:200px}
+#m-preview video{max-width:100%;max-height:50vh}
+#m-preview #nopreview{color:#fff;text-align:center;padding:40px}
+#timeline{background:#fff;border-top:1px solid var(--line);padding:10px 12px}
+#mtoolbar{display:flex;background:#fff;border-top:1px solid var(--line);padding:8px 4px calc(8px + env(safe-area-inset-bottom));position:sticky;bottom:0;z-index:20}
+#mtoolbar button{flex:1;border:none;background:none;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11px;font-weight:700;color:var(--muted);padding:8px 2px;border-radius:12px}
+#mtoolbar button span{font-size:24px}
+#mtoolbar button.on{color:var(--purple);background:#faf5ff}
+#msheet{position:fixed;left:0;right:0;bottom:0;max-height:65vh;background:#fff;border-radius:20px 20px 0 0;box-shadow:0 -8px 40px rgba(0,0,0,.15);z-index:40;display:flex;flex-direction:column;animation:slideup .25s}
+#msheet-handle{width:40px;height:4px;background:#e0d4f5;border-radius:4px;margin:10px auto 4px;cursor:pointer;flex-shrink:0}
+#msheet-body{overflow-y:auto;padding:6px 18px calc(18px + env(safe-area-inset-bottom))}
+@keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheetpanel .insp-sec{background:none;border:none;padding:14px 0;border-bottom:1px solid var(--line)}
+.sheetpanel .insp-sec:last-child{border-bottom:none}
+.sheetpanel h4{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--purple);margin-bottom:10px;text-transform:uppercase}
+@media(min-width:861px){
+#mwrap{max-width:520px;margin:0 auto;width:100%;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+#msheet{left:50%;transform:translateX(-50%);max-width:520px;width:100%}
+}

@@ -75,6 +75,8 @@ function openEditor(tid) {
     if (t) { S.template = tid; $('prompttext').value = t.prompt; setStatus('Style "' + t.name + '" loaded — upload a video, then Generate AI Plan.', 'ok'); }
   }
   showView('editor');
+  /* reset to upload state if no video */
+  if (!S.file) { $('m-upload').hidden = false; $('m-preview').hidden = true; $('timeline').hidden = true; $('mtoolbar').hidden = true; hideSheet(); }
   renderTemplates();
 }
 function renderTemplates() {
@@ -128,6 +130,9 @@ function loadFile(f) {
     fe.innerHTML = '<b>' + esc(f.name) + '</b><br>Duration: ' + fmt(S.duration) + ' · ' + S.vw + '×' + S.vh + '<br>Size: ' + mb + ' MB';
     $('planbtn').disabled = false; $('exportbtn').disabled = false; const cb=$('cloudbtn'); if(cb) cb.disabled = false;
     const vb = $('viralbtn'); if (vb) vb.disabled = false;
+    /* CapCut-simple: hide upload, show preview + timeline + toolbar */
+    $('m-upload').hidden = true; $('m-preview').hidden = false;
+    $('timeline').hidden = false; $('mtoolbar').hidden = false;
     if (S.duration > 600) toast('Long video — export slow.');
     S.clips = [newClip(0, S.duration, '')];
     S.selected = S.clips[0].id; S.aiPlan = null; S.planSource = null;
@@ -1079,4 +1084,19 @@ async function handleDemoHash() {
     } else setStatus('Video dobara select karo (browser security), prompt ready hai.', '');
   } catch (e) {}
 }
+/* ---------- CapCut-style bottom toolbar + sheets ---------- */
+let curSheet = null;
+function showSheet(name) {
+  const sheet = $('msheet'), body = $('msheet-body');
+  if (curSheet === name) { sheet.hidden = true; curSheet = null; $$('#mtoolbar button').forEach(b => b.classList.remove('on')); return; }
+  const panel = $('sheet-' + name);
+  if (!panel) return;
+  body.innerHTML = ''; body.appendChild(panel); panel.hidden = false;
+  sheet.hidden = false; curSheet = name;
+  $$('#mtoolbar button').forEach(b => b.classList.toggle('on', b.dataset.sheet === name));
+}
+function hideSheet() { const s = $('msheet'); if (s) s.hidden = true; curSheet = null; $$('#mtoolbar button').forEach(b => b.classList.remove('on')); }
+$$('#mtoolbar button').forEach(b => b.onclick = () => showSheet(b.dataset.sheet));
+$('msheet-handle').onclick = hideSheet;
+$('viralbtn2').onclick = () => { hideSheet(); $('viralbtn').click(); };
 showHome(); handleDemoHash(); renderTemplates(); syncChips(); renderInspector(); checkEngine(); initAuth(); updateTimecode();
