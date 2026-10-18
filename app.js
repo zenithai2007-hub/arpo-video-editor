@@ -707,13 +707,14 @@ async function initAuth() {
     const { data } = await sb.auth.getSession();
     setUser(data.session ? data.session.user : null);
     sb.auth.onAuthStateChange((_ev, sess) => setUser(sess ? sess.user : null));
-    if (!sb._user) { $('loginbtn').style.display = ''; const sb2 = $('signupbtn'); if (sb2) sb2.style.display = ''; }
+    if (!sb._user) { $('loginbtn').style.display = ''; const sb2 = $('signupbtn'); if (sb2) sb2.style.display = ''; const eb = $('eloginbtn'); if (eb) eb.style.display = ''; }
   } catch (e) { /* auth unavailable — app works without it */ }
 }
 function setUser(u) {
   sb._user = u || null;
   $('loginbtn').style.display = u ? 'none' : '';
   const sg = $('signupbtn'); if (sg) sg.style.display = u ? 'none' : '';
+  const eb = $('eloginbtn'); if (eb) eb.style.display = u ? 'none' : '';
   const chip = $('userchip');
   if (u) {
     chip.style.display = '';
@@ -731,6 +732,7 @@ function drawAuth() {
 }
 $('loginbtn').onclick = () => { authMode = 'login'; drawAuth(); $('authmodal').classList.add('open'); };
 $('signupbtn').onclick = () => { authMode = 'signup'; drawAuth(); $('authmodal').classList.add('open'); };
+$('eloginbtn').onclick = () => { authMode = 'login'; drawAuth(); $('authmodal').classList.add('open'); };
 $('authcancel').onclick = () => $('authmodal').classList.remove('open');
 $('authmodal').addEventListener('click', e => { if (e.target.id === 'authmodal') $('authmodal').classList.remove('open'); });
 $('authswitch').onclick = () => { authMode = authMode === 'login' ? 'signup' : 'login'; drawAuth(); };
