@@ -14,7 +14,7 @@ const S = {
   flip: false, fadeIn: 0, fadeOut: 0,
   brightness: 0, contrast: 1, saturation: 1,
   effect: 'none', textOverlay: '', textStyle: 'bold',
-  voiceFx: 'none', denoise: false,
+  voiceFx: 'none', denoise: false, viral: false,
   aiPlan: null, planSource: null,
   model: localStorage.getItem('arpo_model') || '',
   aiReady: false,
@@ -127,6 +127,7 @@ function loadFile(f) {
     const fe = $('fileinfo'); fe.style.display = 'block';
     fe.innerHTML = '<b>' + esc(f.name) + '</b><br>Duration: ' + fmt(S.duration) + ' · ' + S.vw + '×' + S.vh + '<br>Size: ' + mb + ' MB';
     $('planbtn').disabled = false; $('exportbtn').disabled = false; const cb=$('cloudbtn'); if(cb) cb.disabled = false;
+    const vb = $('viralbtn'); if (vb) vb.disabled = false;
     if (S.duration > 600) toast('Long video — export slow.');
     S.clips = [newClip(0, S.duration, '')];
     S.selected = S.clips[0].id; S.aiPlan = null; S.planSource = null;
@@ -287,7 +288,7 @@ function applyPlan(plan, source) {
 }
 
 /* ---------- history ---------- */
-function snap() { return JSON.stringify({ clips: S.clips, selected: S.selected, aspect: S.aspect, style: S.style, transition: S.transition, audioMode: S.audioMode, volume: S.volume, resolution: S.resolution, flip: S.flip, fadeIn: S.fadeIn, fadeOut: S.fadeOut, brightness: S.brightness, contrast: S.contrast, saturation: S.saturation, effect: S.effect, textOverlay: S.textOverlay, textStyle: S.textStyle, voiceFx: S.voiceFx, denoise: S.denoise }); }
+function snap() { return JSON.stringify({ clips: S.clips, selected: S.selected, aspect: S.aspect, style: S.style, transition: S.transition, audioMode: S.audioMode, volume: S.volume, resolution: S.resolution, flip: S.flip, fadeIn: S.fadeIn, fadeOut: S.fadeOut, brightness: S.brightness, contrast: S.contrast, saturation: S.saturation, effect: S.effect, textOverlay: S.textOverlay, textStyle: S.textStyle, voiceFx: S.voiceFx, denoise: S.denoise, viral: S.viral }); }
 function pushHistory() {
   S.history = S.history.slice(0, S.hIndex + 1);
   S.history.push(snap());
@@ -296,7 +297,7 @@ function pushHistory() {
 }
 function restore(json) {
   const o = JSON.parse(json);
-  Object.assign(S, { clips: o.clips, selected: o.selected, aspect: o.aspect, style: o.style, transition: o.transition, audioMode: o.audioMode, volume: o.volume, resolution: o.resolution, flip: !!o.flip, fadeIn: o.fadeIn || 0, fadeOut: o.fadeOut || 0, brightness: o.brightness || 0, contrast: o.contrast || 1, saturation: o.saturation || 1, effect: o.effect || 'none', textOverlay: o.textOverlay || '', textStyle: o.textStyle || 'bold', voiceFx: o.voiceFx || 'none', denoise: !!o.denoise });
+  Object.assign(S, { clips: o.clips, selected: o.selected, aspect: o.aspect, style: o.style, transition: o.transition, audioMode: o.audioMode, volume: o.volume, resolution: o.resolution, flip: !!o.flip, fadeIn: o.fadeIn || 0, fadeOut: o.fadeOut || 0, brightness: o.brightness || 0, contrast: o.contrast || 1, saturation: o.saturation || 1, effect: o.effect || 'none', textOverlay: o.textOverlay || '', textStyle: o.textStyle || 'bold', voiceFx: o.voiceFx || 'none', denoise: !!o.denoise, viral: !!o.viral });
   renderAll(); syncChips(); syncNewControls(); autosave();
 }
 $('undobtn').onclick = () => { if (S.hIndex > 0) { S.hIndex--; restore(S.history[S.hIndex]); } };
@@ -542,6 +543,10 @@ $('exportbtn').onclick = async () => {
       const fs = Math.round(W / 12);
       const styles = { bold: ':fontcolor=white:borderw=3:bordercolor=black', neon: ':fontcolor=yellow:borderw=2:bordercolor=black', minimal: ':fontcolor=white' };
       capF += `,drawtext=fontfile=/font.ttf:text='${ffEsc(S.textOverlay)}':fontsize=${fs}${styles[S.textStyle] || styles.bold}:x=(w-text_w)/2:y=80`;
+    }
+    // VIRAL word-by-word captions (Hormozi style)
+    if (S.viral && haveFont) {
+      capF += viralWordFilters(S.clips, durs, W, H, useFade, F, N);
     }
     // fade in/out animation
     let animF = '';
@@ -883,6 +888,7 @@ function runCommand(raw) {
   if (/deep voice/.test(cmd)) { S.voiceFx = 'deep'; syncNewControls(); return done('🎩 Deep voice!'); }
   if (/normal voice|remove voice effect/.test(cmd)) { S.voiceFx = 'none'; syncNewControls(); return done('Voice normal.'); }
   if (/noise reduction|remove noise|clean audio/.test(cmd)) { S.denoise = true; syncNewControls(); return done('🔇 Noise reduction ON!'); }
+  if (/viral|make it viral/.test(cmd)) { $('viralbtn').click(); return; }
   cmdStatus('Samajh nahi aaya — try: "cut first 10 seconds", "add captions", "make it vertical"', false);
 }
 $('cmdbtn').onclick = () => runCommand($('cmdinput').value);
@@ -917,7 +923,39 @@ $('flipbtn').onclick = () => { S.flip = !S.flip; pushHistory(); syncNewControls(
 $('textoverlay').oninput = e => { S.textOverlay = e.target.value.slice(0, 80); autosaveLight(); };
 $('textoverlay').onchange = () => pushHistory();
 
-/* ---------- init ---------- */
+/* ---------- VIRAL MODE: one click → viral short ---------- */
+$('viralbtn').onclick = () => {
+  if (!S.file || !S.clips.length) { toast('Pehle video upload karo!', true); return; }
+  S.aspect = '9:16'; S.style = 'vibrant'; S.viral = true;
+  // punchy captions if missing
+  const viralWords = [
+    ['STOP', 'scrolling', 'NOW'], ['This', 'will', 'BLOW', 'your mind'],
+    ['Watch', 'till', 'the', 'END'], ['You', 'WONT', 'believe', 'this'],
+    ['The', 'SECRET', 'is', 'out'], ['This', 'changes', 'EVERYTHING'],
+  ];
+  S.clips.forEach((c, i) => {
+    if (!c.caption) c.caption = viralWords[i % viralWords.length].join(' ');
+  });
+  pushHistory(); renderAll(); syncChips();
+  toast('🔥 VIRAL MODE ON! Export karo — word-by-word captions ke saath!');
+};
+function viralWordFilters(clips, durs, W, H, useFade, F, N) {
+  // Hormozi-style: one BIG word at a time, centered, popping
+  let f = '', tcur = 0;
+  const fs = Math.round(W / 8);
+  clips.forEach((c, i) => {
+    const words = (c.caption || 'Watch this').split(/\s+/).filter(Boolean);
+    const cdur = durs[i] - (useFade && i < N - 1 ? F : 0);
+    const wdur = cdur / Math.max(1, words.length);
+    words.forEach((w, wi) => {
+      const ws = tcur + wi * wdur, we = ws + wdur;
+      // pop scale animation via fontsize trick: use 2 drawtexts (shadow + main)
+      f += `,drawtext=fontfile=/font.ttf:text='${ffEsc(w.toUpperCase())}':fontsize=${fs}:fontcolor=#ffdd00:borderw=${Math.max(3, Math.round(fs/14))}:bordercolor=black:x=(w-text_w)/2:y=(h-text_h)/2-40:enable='between(t,${ws.toFixed(2)},${we.toFixed(2)})'`;
+    });
+    tcur += durs[i] - (useFade && i < N - 1 ? F : 0);
+  });
+  return f;
+}
 $('startbtn').onclick = () => openEditor(null);
 $('backbtn').onclick = () => go('home');
 /* ---------- dashboard: sidebar, projects, exports, cloud render ---------- */
